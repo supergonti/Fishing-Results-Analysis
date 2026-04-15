@@ -211,10 +211,12 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
     <div class="card-title">⚙ 解析条件の一括設定</div>
 
     <!-- 確定ボタン（上部に配置） -->
-    <div class="settings-confirm-row" style="margin-top:0;padding-top:0;border-top:none;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+    <div class="settings-confirm-row" style="margin-top:0;padding-top:0;border-top:none;margin-bottom:8px;">
       <button class="btn-confirm" onclick="applyAllSettings()">✅ この条件で解析</button>
       <button class="btn-reset" onclick="resetAllSettings()">↺ 全リセット</button>
       <span id="settings-status"></span>
+    </div>
+    <div id="filter-result-banner" style="display:none;padding:8px 16px;margin-bottom:16px;border-bottom:1px solid var(--border);font-size:.92rem;color:var(--text);line-height:1.5;">
     </div>
 
     <!-- 釣り場・釣法セクション -->
@@ -495,15 +497,23 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
     </select>
   </div>
   <div class="card">
-    <div class="card-title">潮汐タイムライン ＋ 釣果マーカー</div>
+    <div class="card-title">潮位推移（月齢ベースモデル） ＋ 釣果マーカー</div>
     <p style="font-size:.76rem;color:var(--text3);margin-bottom:8px;">
-      背景色: 大潮（青）・中潮（緑）・小潮（橙）・長潮/若潮（紫） ⭐ = 大物　🔴 = 通常釣果
+      潮位サインカーブ: 月齢から推定した潮位振幅（大潮=大振幅、小潮=小振幅）
+      ⭐ = 大物　🔴 = 通常釣果
     </p>
-    <div style="height:320px;position:relative;"><canvas id="c-tide-tl"></canvas></div>
+    <div style="height:340px;position:relative;"><canvas id="c-tide-tl"></canvas></div>
   </div>
   <div class="card">
-    <div class="card-title">潮汐種別 釣果分布</div>
-    <div style="height:220px;position:relative;"><canvas id="c-tide-dist"></canvas></div>
+    <div class="card-title">月の満ち欠け</div>
+    <div id="moon-phase-strip" style="display:flex;flex-wrap:wrap;gap:2px;overflow-x:auto;padding:4px 0;"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">潮汐種別×月齢帯 釣果分布（新月大潮 〜 満月大潮）</div>
+    <p style="font-size:.76rem;color:var(--text3);margin-bottom:8px;">
+      左から新月寄り → 満月寄り。通常釣果(赤) vs 大物(金)
+    </p>
+    <div style="height:260px;position:relative;"><canvas id="c-tide-dist"></canvas></div>
   </div>
 </div>
 
@@ -726,7 +736,7 @@ function buildGroupedCBList(containerId, allItems, groupDefs) {
     };
     hdr.appendChild(arrow); hdr.appendChild(lbl); hdr.appendChild(countSpan); hdr.appendChild(toggle);
     hdr.addEventListener('click', (e) => {
-      if (e.target.closest('.cb-group-btn')) return;
+      if (e.target.closest('.cb-group-toggle')) return;
       const chips = grpDiv.querySelector('.cb-group-chips');
       const collapsed = chips.classList.toggle('collapsed');
       arrow.textContent = collapsed ? '▶' : '▼';
@@ -885,7 +895,7 @@ function applySPFilter() {
 
 function resetSPFilter() {
   document.querySelectorAll('#species-cb-list input').forEach(cb => cb.checked = false);
-  document.querySelectorAll('#species-cb-list .cb-group-btn').forEach(btn => btn.textContent = '全選択');
+  // toggle state updated via updateToggleState
   document.querySelectorAll('#area-chips-list input').forEach(cb => { cb.checked = cb.value === '広戸沖'; });
   const sel = document.getElementById('species-select');
   if (sel) { [...sel.options].forEach(o => { o.selected = false; }); }
@@ -915,12 +925,12 @@ function updateSPBadges(spChecked, areaChecked) {
 
 function selectAllSPCB() {
   document.querySelectorAll('#species-cb-list input').forEach(cb => cb.checked = true);
-  document.querySelectorAll('#species-cb-list .cb-group-btn').forEach(btn => btn.textContent = '全解除');
+  // toggle state updated via updateToggleState
 }
 
 function selectNoneSPCB() {
   document.querySelectorAll('#species-cb-list input').forEach(cb => cb.checked = false);
-  document.querySelectorAll('#species-cb-list .cb-group-btn').forEach(btn => btn.textContent = '全選択');
+  // toggle state updated via updateToggleState
 }
 
 function selectAllAreaCB() {
@@ -955,20 +965,20 @@ function refreshSpeciesCBPanel(profiles) {
     lbl.textContent = label;
     const countSpan = document.createElement('span');
     countSpan.className = 'cb-group-count';
-    const btn = document.createElement('button');
-    btn.className = 'cb-group-btn';
-    btn.textContent = present.every(x => prevChecked.has(x)) ? '全解除' : '全選択';
-    btn.onclick = (e) => {
+    const toggle = document.createElement('button');
+    toggle.className = 'cb-group-toggle';
+    if (present.some(x => prevChecked.has(x))) toggle.classList.add('on');
+    toggle.onclick = (e) => {
       e.preventDefault(); e.stopPropagation();
       const cbs = grpDiv.querySelectorAll('input[type=checkbox]');
-      const allChk = [...cbs].every(cb => cb.checked);
-      cbs.forEach(cb => cb.checked = !allChk);
-      btn.textContent = allChk ? '全選択' : '全解除';
+      const anyOn = [...cbs].some(cb => cb.checked);
+      cbs.forEach(cb => cb.checked = !anyOn);
+      updateToggleState(grpDiv);
       updateGroupHighlight(grpDiv);
     };
-    hdr.appendChild(arrow); hdr.appendChild(lbl); hdr.appendChild(btn);
+    hdr.appendChild(arrow); hdr.appendChild(lbl); hdr.appendChild(countSpan); hdr.appendChild(toggle);
     hdr.addEventListener('click', (e) => {
-      if (e.target.closest('.cb-group-btn')) return;
+      if (e.target.closest('.cb-group-toggle')) return;
       const chips = grpDiv.querySelector('.cb-group-chips');
       const collapsed = chips.classList.toggle('collapsed');
       arrow.textContent = collapsed ? '▶' : '▼';
@@ -1174,9 +1184,8 @@ function applyRangePreset(prefix) {
 }
 
 function getSettingsSpeciesFilter() {
-  // 設定タブで選択された魚種の最初の1つ（スカラー用）
-  const checked = [...document.querySelectorAll('#species-cb-list input:checked')].map(cb => cb.value);
-  return checked.length === 1 ? checked[0] : '';
+  // 設定タブで選択された魚種リスト
+  return [...document.querySelectorAll('#species-cb-list input:checked')].map(cb => cb.value);
 }
 
 function getSettingsSpeciesList() {
@@ -1193,63 +1202,158 @@ function renderTideTimeline() {
   const spF = getSettingsSpeciesFilter();
   const labels = fil.map(r=>r.date);
 
-  const tideMap = {'大潮':5,'中潮':4,'小潮':3,'長潮':2,'若潮':1};
-  const tideData = fil.map(r => tideMap[r['潮汐']] || 0);
-  const tideColors = fil.map(r => {
-    const t = r['潮汐'];
-    if (t === '大潮') return 'rgba(0,140,216,.7)';
-    if (t === '中潮') return 'rgba(46,196,182,.7)';
-    if (t === '小潮') return 'rgba(244,162,97,.7)';
-    return 'rgba(123,45,139,.7)';
+  // ── 潮位モデル生成（月齢ベース） ──
+  // 振幅: 大潮(新月/満月)=100, 小潮(上弦/下弦)=40
+  function tideAmplitude(moonAge) {
+    // cos(2π * moonAge/14.76) で大潮/小潮を表現
+    return 50 + 50 * Math.cos(2 * Math.PI * moonAge / 14.76);
+  }
+  const tideHigh = fil.map(r => {
+    const ag = r['月齢'] ?? 15;
+    return tideAmplitude(ag);
+  });
+  const tideLow = fil.map(r => {
+    const ag = r['月齢'] ?? 15;
+    return -tideAmplitude(ag) * 0.8;
   });
 
+  // 背景色プラグイン（潮汐種別）
+  const tideColorPlugin = {
+    id:'tideColor',
+    beforeDraw(chart) {
+      const {ctx, chartArea:{left,right,top,bottom}, scales:{x}} = chart;
+      if(!x) return;
+      ctx.save();
+      fil.forEach((r,i) => {
+        const t = r['潮汐'];
+        let col = null;
+        if(t==='大潮') col='rgba(0,140,216,.08)';
+        else if(t==='中潮') col='rgba(46,196,182,.06)';
+        else if(t==='小潮') col='rgba(244,162,97,.06)';
+        else if(t==='長潮'||t==='若潮') col='rgba(123,45,139,.06)';
+        if(!col) return;
+        const xPx = x.getPixelForValue(i);
+        const nextX = i+1<fil.length ? x.getPixelForValue(i+1) : right;
+        ctx.fillStyle = col;
+        ctx.fillRect(xPx, top, nextX-xPx, bottom-top);
+      });
+      ctx.restore();
+    }
+  };
+
   const datasets = [
-    {label:'潮汐', data:tideData, type:'bar',
-      backgroundColor:tideColors, borderWidth:0, barPercentage:1.0, categoryPercentage:1.0},
-    ...buildCatchDatasets(fil, spF, '潮汐').map(ds => ({...ds, data: fil.map((r,i) => {
-      const hasCatch = ds.data[i] != null;
-      return hasCatch ? tideData[i] : null;
+    {label:'満潮ライン', data:tideHigh, borderColor:'#00b4d8', backgroundColor:'rgba(0,180,216,.12)',
+      tension:0.4, fill:'+1', pointRadius:0, borderWidth:1.5},
+    {label:'干潮ライン', data:tideLow, borderColor:'#457b9d', backgroundColor:'rgba(69,123,157,.08)',
+      tension:0.4, fill:false, pointRadius:0, borderWidth:1, borderDash:[3,3]},
+    ...buildCatchDatasets(fil, spF, '月齢').map(ds => ({...ds, data: fil.map((r,i) => {
+      return ds.data[i] != null ? tideHigh[i] : null;
     })})),
   ];
 
   kc('c-tide-tl');
   const ctx = document.getElementById('c-tide-tl'); if(!ctx) return;
-  CH['c-tide-tl'] = new Chart(ctx, {type:'bar', data:{labels,datasets}, options:{
+  CH['c-tide-tl'] = new Chart(ctx, {type:'line', data:{labels,datasets}, options:{
     responsive:true, maintainAspectRatio:false,
     plugins:{legend:{labels:{color:'#94a8bc',font:{size:10}}},
       tooltip:{callbacks:{
-        label: ci => {
+        afterLabel: ci => {
           const r=fil[ci.dataIndex];
-          const t=r?.['潮汐']||'—';
-          const f=r?.釣果?.length ? ' 🎣 '+r.釣果.join('/') : '';
-          return t + f;
+          const t=r?.['潮汐']||''; const ph=r?.['月相']||'';
+          const f=r?.釣果?.length ? '🎣 '+r.釣果.join('/') : '';
+          return [t,ph,f].filter(Boolean).join(' / ');
         }
       }}},
     scales:{
       x:{ticks:{color:'#94a8bc',font:{size:8},maxTicksLimit:20},grid:{color:'#1e3550'}},
-      y:{ticks:{color:'#94a8bc',font:{size:9},callback:v=>({5:'大潮',4:'中潮',3:'小潮',2:'長潮',1:'若潮'})[v]||''},
-         grid:{color:'#1e3550'},min:0,max:6}
+      y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},
+         title:{display:true,text:'推定潮位',color:'#94a8bc'}}
     }
-  }});
+  }, plugins:[tideColorPlugin]});
 
-  // 潮汐種別分布
-  const tideCnt = {};
-  fil.forEach(r => { if(r?.釣果?.length){ const t=r['潮汐']||'不明'; tideCnt[t]=(tideCnt[t]||0)+1; }});
-  const tLabels = Object.keys(tideCnt);
-  const tColors = tLabels.map(t => {
-    if(t==='大潮') return '#0077b6';
-    if(t==='中潮') return '#2ec4b6';
-    if(t==='小潮') return '#f4a261';
-    return '#7b2d8b';
-  });
+  // ── 月の満ち欠けストリップ ──
+  const strip = document.getElementById('moon-phase-strip');
+  if (strip) {
+    const step = Math.max(1, Math.floor(fil.length / 60));
+    let html = '';
+    fil.forEach((r,i) => {
+      if (i % step !== 0) return;
+      const ag = r['月齢'] ?? 0;
+      const phase = ag / 29.53;
+      // SVG moon phase
+      const size = 24;
+      let svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0;">`;
+      svg += `<circle cx="${size/2}" cy="${size/2}" r="${size/2-1}" fill="#e9c46a"/>`;
+      // Shadow
+      const shadowX = Math.cos(phase * 2 * Math.PI) * (size/2-1);
+      if (phase < 0.5) {
+        // waxing: shadow from right
+        svg += `<ellipse cx="${size/2}" cy="${size/2}" rx="${Math.abs(shadowX)}" ry="${size/2-1}" fill="#1a2e44"/>`;
+      } else {
+        // waning: shadow from left
+        svg += `<ellipse cx="${size/2}" cy="${size/2}" rx="${Math.abs(shadowX)}" ry="${size/2-1}" fill="#1a2e44"/>`;
+      }
+      if (ag < 1 || ag > 28.5) {
+        svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0;"><circle cx="${size/2}" cy="${size/2}" r="${size/2-1}" fill="#2a4060" stroke="#5a7a99" stroke-width="1"/>`;
+      } else if (ag > 13.5 && ag < 16) {
+        svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0;"><circle cx="${size/2}" cy="${size/2}" r="${size/2-1}" fill="#e9c46a"/>`;
+      }
+      svg += '</svg>';
+      const dateStr = r.date.slice(5);
+      html += `<div style="text-align:center;min-width:28px;" title="${r.date} 月齢${ag.toFixed(1)}">${svg}<div style="font-size:.55rem;color:var(--text3);">${dateStr}</div></div>`;
+    });
+    strip.innerHTML = html;
+  }
+
+  // ── 潮汐種別×月齢帯 棒グラフ（新月大潮〜満月大潮） ──
+  const spArr = Array.isArray(spF) ? spF : (spF ? [spF] : []);
+  const hasSPF = spArr.length > 0;
+  const bands = [
+    {label:'若潮(新月側)', check: ag => ag>=10&&ag<12},
+    {label:'中潮(新月側)', check: ag => (ag>=2&&ag<5)||(ag>=8&&ag<10)},
+    {label:'大潮(新月)',   check: ag => ag<2||ag>=28},
+    {label:'中潮(満月側)', check: ag => (ag>=5&&ag<8)||(ag>=19&&ag<22)},
+    {label:'若潮(満月側)', check: ag => ag>=24&&ag<26},
+    {label:'大潮(満月)',   check: ag => ag>=12&&ag<16},
+    {label:'小潮(上弦)',   check: ag => ag>=5&&ag<8},
+    {label:'長潮',         check: ag => (ag>=8&&ag<10)||(ag>=22&&ag<24)},
+    {label:'小潮(下弦)',   check: ag => ag>=19&&ag<22},
+  ];
+  // Simplified: group by 月齢を8等分
+  const eightBands = [
+    {label:'新月大潮',     min:28, max:29.53, extra:[[0,2]]},
+    {label:'中潮(↑)',     min:2, max:5, extra:[]},
+    {label:'小潮(上弦)',   min:5, max:8, extra:[]},
+    {label:'中潮(→満)',   min:8, max:12, extra:[]},
+    {label:'満月大潮',     min:12, max:16, extra:[]},
+    {label:'中潮(↓)',     min:16, max:19, extra:[]},
+    {label:'小潮(下弦)',   min:19, max:22, extra:[]},
+    {label:'中潮(→新)',   min:22, max:28, extra:[]},
+  ];
+  function inBand8(ag, b) {
+    if (ag==null) return false;
+    if (ag>=b.min && ag<b.max) return true;
+    return b.extra.some(([a,bb])=>ag>=a&&ag<bb);
+  }
+  const allCatch = fil.filter(r=>r.釣果?.length && (!hasSPF || r.釣果.some(s=>spArr.includes(s))));
+  const bigCatch = allCatch.filter(r=>(r['大物魚種']||[]).length>0);
+  const normalCatch = allCatch.filter(r=>!(r['大物魚種']||[]).length);
+  const bLabels = eightBands.map(b=>b.label);
+
   kc('c-tide-dist');
   const ctx2 = document.getElementById('c-tide-dist'); if(!ctx2) return;
   CH['c-tide-dist'] = new Chart(ctx2, {type:'bar', data:{
-    labels:tLabels, datasets:[{label:'釣果日数',data:tLabels.map(t=>tideCnt[t]),backgroundColor:tColors,borderWidth:1}]},
+    labels:bLabels,
+    datasets:[
+      {label:'通常釣果', data:eightBands.map(b=>normalCatch.filter(r=>inBand8(r['月齢'],b)).length),
+        backgroundColor:'#e63946', borderWidth:1, borderColor:'#e63946'},
+      {label:'⭐大物', data:eightBands.map(b=>bigCatch.filter(r=>inBand8(r['月齢'],b)).length),
+        backgroundColor:'#e9c46a', borderWidth:1, borderColor:'#e9c46a'},
+    ]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#94a8bc',font:{size:10}},grid:{color:'#1e3550'}},
-              y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},title:{display:true,text:'日数',color:'#94a8bc'},beginAtZero:true}}}});
+      plugins:{legend:{labels:{color:'#94a8bc',font:{size:10}}}},
+      scales:{x:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'}},
+              y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},title:{display:true,text:'釣果日数',color:'#94a8bc'},beginAtZero:true}}}});
 }
 
 function switchTab(name) {
@@ -1277,9 +1381,24 @@ function applyAllSettings() {
   const spChecked = [...document.querySelectorAll('#species-cb-list input:checked')].map(cb => cb.value);
   const areaChecked = [...document.querySelectorAll('#area-chips-list input:checked')].map(cb => cb.value);
   GSETTINGS = { spots, methods, species: spChecked, areas: areaChecked, applied: true };
-  // ステータス表示
+  // フィルター結果バナー表示
+  const recs = GF ? GF.filteredRecords : (G?.records||[]);
+  const totalCatch = recs.reduce((s,r) => s + (+r.count||1), 0);
+  const banner = document.getElementById('filter-result-banner');
+  if (banner && (spots.length || spChecked.length)) {
+    banner.style.display = 'block';
+    banner.innerHTML = '🎯 フィルター適用中: 釣り場<b>' + spots.length + '</b>件 × 釣法<b>' + methods.length + '</b>件 × 魚種<b>' + spChecked.length + '</b>種 → <b>' + totalCatch + '</b>匹、<b>' + areaChecked.length + '</b>海域';
+  } else if (banner) {
+    banner.style.display = 'none';
+  }
   document.getElementById('settings-status').textContent = '✅ 設定を適用しました';
   setTimeout(() => { document.getElementById('settings-status').textContent = ''; }, 3000);
+  // タイムライン系を再描画（設定反映）
+  renderTimeline();
+  renderCurrentTimeline();
+  renderMoonTimeline();
+  renderTideTimeline();
+  renderPrediction();
   // 条件バー更新
   updateConditionBars();
   // 魚種解析タブに遷移
@@ -1289,6 +1408,7 @@ function applyAllSettings() {
 function resetAllSettings() {
   resetFilter();
   resetSPFilter();
+  const banner = document.getElementById('filter-result-banner'); if(banner) banner.style.display='none';
   GSETTINGS = { spots: [], methods: [], species: [], areas: ['室戸沖'], applied: false };
   document.getElementById('settings-status').textContent = '↺ 全設定をリセットしました';
   setTimeout(() => { document.getElementById('settings-status').textContent = ''; }, 3000);
@@ -1659,13 +1779,15 @@ function isBigCatch(r, spF) {
 }
 
 function buildCatchDatasets(fil, spF, yKey) {
+  // spFはstring or array: 配列なら複数魚種フィルター
+  const spArr = Array.isArray(spF) ? spF : (spF ? [spF] : []);
+  const hasSPFilter = spArr.length > 0;
   const catchSet = new Set(
-    fil.filter(r=>r.釣果?.length && (!spF || r.釣果.includes(spF))).map(r=>r.date)
+    fil.filter(r=>r.釣果?.length && (!hasSPFilter || r.釣果.some(s=>spArr.includes(s)))).map(r=>r.date)
   );
-  // 日付 → timeseries行 のマップ
-  const dateMap = Object.fromEntries(fil.map(r=>[r.date,r]));
-  const normalData = fil.map(r => catchSet.has(r.date) && !isBigCatch(r,spF) ? r[yKey] : null);
-  const bigData    = fil.map(r => catchSet.has(r.date) &&  isBigCatch(r,spF) ? r[yKey] : null);
+  const spSingle = spArr.length === 1 ? spArr[0] : '';
+  const normalData = fil.map(r => catchSet.has(r.date) && !isBigCatch(r,spSingle) ? r[yKey] : null);
+  const bigData    = fil.map(r => catchSet.has(r.date) &&  isBigCatch(r,spSingle) ? r[yKey] : null);
   return [
     { label:'通常釣果', data:normalData,
       type:'scatter', pointStyle:'circle', pointRadius:5,
@@ -1730,9 +1852,11 @@ function renderTimeline() {
       y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},title:{display:true,text:'水温℃',color:'#94a8bc'}},
       ...(showCs?{y2:{type:'linear',position:'right',ticks:{color:'#7b2d8b',font:{size:9}},grid:{drawOnChartArea:false},title:{display:true,text:'流速kn',color:'#7b2d8b'}}}:{})}}});
 
-  // トレンドカレンダー
+  // トレンドカレンダー（設定タブの魚種フィルター適用）
+  const spArr = Array.isArray(spF) ? spF : (spF ? [spF] : []);
+  const hasSPF = spArr.length > 0;
   const grp={急上昇:[],上昇:[],安定:[],下降:[],急下降:[]};
-  fil.forEach(r=>{const t=r['水温トレンド'];if(grp[t]&&r.釣果?.length)grp[t].push(`${r.date}(${r['水温']}℃)${(r['大物魚種']||[]).length?'⭐':''}: ${r.釣果.join('/')}`);});
+  fil.forEach(r=>{const t=r['水温トレンド'];if(grp[t]&&r.釣果?.length&&(!hasSPF||r.釣果.some(s=>spArr.includes(s))))grp[t].push(`${r.date}(${r['水温']}℃)${(r['大物魚種']||[]).length?'⭐':''}: ${r.釣果.filter(s=>!hasSPF||spArr.includes(s)).join('/')}`);});
   const cols={急上昇:'#e63946',上昇:'#2ec4b6',安定:'#7ab0d4',下降:'#7b2d8b',急下降:'#f4a261'};
   let cal='';
   Object.entries(grp).forEach(([t,items])=>{
