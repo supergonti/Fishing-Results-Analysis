@@ -83,7 +83,6 @@ body{background:var(--bg);font-family:'Yu Gothic UI','Meiryo UI','Hiragino Sans'
 #area-chips-list{max-height:225px;overflow-y:auto;}
 .cb-group-chips.collapsed{display:none;}
 #filter-status{font-size:.79rem;color:var(--text3);}
-#active-filter-banner{display:none;background:rgba(244,162,97,.08);border-bottom:1px solid rgba(244,162,97,.25);padding:6px 24px;font-size:.79rem;color:#f4a261;}
 /* ─── 設定タブ ─── */
 #tab-settings .settings-section{margin-bottom:20px;}
 #tab-settings .settings-section-title{font-size:1.1rem;font-weight:700;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
@@ -183,7 +182,7 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
   </div>
 </div>
 
-<div id="active-filter-banner" style="display:none;">🎯 フィルター適用中: <span id="banner-text"></span></div>
+
 <!-- バッジ要素（updateBadge関数が参照するため非表示で保持） -->
 <div style="display:none;">
   <span id="badge-spots">釣り場: すべて</span>
@@ -269,11 +268,11 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
                 <span class="cb-group-label">海域選択</span>
               </div>
               <div class="cb-group-chips" id="area-chips-list">
-                <label class="cb-chip"><input type="checkbox" value="室戸沖">&nbsp;室戸沖</label>
-                <label class="cb-chip"><input type="checkbox" value="北西">&nbsp;北西</label>
-                <label class="cb-chip"><input type="checkbox" value="西">&nbsp;西</label>
-                <label class="cb-chip"><input type="checkbox" value="東">&nbsp;東</label>
-                <label class="cb-chip"><input type="checkbox" value="北東">&nbsp;北東</label>
+                <label class="cb-chip"><input type="checkbox" value="室戸沖" onchange="updateRealtimeCount()">&nbsp;室戸沖</label>
+                <label class="cb-chip"><input type="checkbox" value="北西" onchange="updateRealtimeCount()">&nbsp;北西</label>
+                <label class="cb-chip"><input type="checkbox" value="西" onchange="updateRealtimeCount()">&nbsp;西</label>
+                <label class="cb-chip"><input type="checkbox" value="東" onchange="updateRealtimeCount()">&nbsp;東</label>
+                <label class="cb-chip"><input type="checkbox" value="北東" onchange="updateRealtimeCount()">&nbsp;北東</label>
               </div>
             </div>
           </div>
@@ -505,10 +504,6 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
     <div style="height:340px;position:relative;"><canvas id="c-tide-tl"></canvas></div>
   </div>
   <div class="card">
-    <div class="card-title">月の満ち欠け</div>
-    <div id="moon-phase-strip" style="display:flex;flex-wrap:wrap;gap:2px;overflow-x:auto;padding:4px 0;"></div>
-  </div>
-  <div class="card">
     <div class="card-title">潮汐種別×月齢帯 釣果分布（新月大潮 〜 満月大潮）</div>
     <p style="font-size:.76rem;color:var(--text3);margin-bottom:8px;">
       左から新月寄り → 満月寄り。通常釣果(赤) vs 大物(金)
@@ -638,6 +633,7 @@ function initApp(data) {
   renderCurrent5();
   renderTideTimeline();
   updateConditionBars();
+  updateRealtimeCount();
   switchTab('settings');
 }
 
@@ -733,6 +729,7 @@ function buildGroupedCBList(containerId, allItems, groupDefs) {
       cbs.forEach(cb => cb.checked = !anyOn);
       updateToggleState(grpDiv);
       updateGroupHighlight(grpDiv);
+      updateRealtimeCount();
     };
     hdr.appendChild(arrow); hdr.appendChild(lbl); hdr.appendChild(countSpan); hdr.appendChild(toggle);
     hdr.addEventListener('click', (e) => {
@@ -753,6 +750,7 @@ function buildGroupedCBList(containerId, allItems, groupDefs) {
         e.stopPropagation();
         updateToggleState(grpDiv);
         updateGroupHighlight(grpDiv);
+        updateRealtimeCount();
       });
       chip.appendChild(cb);
       chip.appendChild(document.createTextNode(' ' + item));
@@ -783,8 +781,8 @@ function toggleFilter() {
   if (arrow) arrow.classList.toggle('open', !open);
 }
 
-function selectAllCB(id)  { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = true); }
-function selectNoneCB(id) { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = false); }
+function selectAllCB(id)  { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = true); document.querySelectorAll(`#${id} .cb-group`).forEach(g=>{updateToggleState(g);updateGroupHighlight(g);}); updateRealtimeCount(); }
+function selectNoneCB(id) { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = false); document.querySelectorAll(`#${id} .cb-group`).forEach(g=>{updateToggleState(g);updateGroupHighlight(g);}); updateRealtimeCount(); }
 
 function getCheckedVals(id) {
   return [...document.querySelectorAll(`#${id} input:checked`)].map(cb => cb.value);
@@ -803,7 +801,7 @@ function applyFilter() {
 
   if (isAll) {
     GF = null;
-    document.getElementById('active-filter-banner').style.display = 'none';
+    // active-filter-banner removed
     document.getElementById('filter-status').textContent = '✅ 全データで解析';
     updateBadge(spots.length, allSpots.length, methods.length, allMethods.length, null);
   } else {
@@ -812,10 +810,7 @@ function applyFilter() {
     const profiles = {};
     spSet.forEach(sp => { const p = buildProfileJS(sp, recs); if (p) profiles[sp] = p; });
     GF = { profiles, filteredRecords: recs, spots, methods };
-    const banner = document.getElementById('active-filter-banner');
-    banner.style.display = 'block';
-    document.getElementById('banner-text').textContent =
-      `釣り場${spots.length}件 × 釣法${methods.length}件 → ${recs.length}レコード / ${Object.keys(profiles).length}魚種`;
+    // old banner removed
     document.getElementById('filter-status').textContent =
       `✅ ${recs.length}件・${Object.keys(profiles).length}魚種で解析`;
     updateBadge(spots.length, allSpots.length, methods.length, allMethods.length, recs.length);
@@ -830,7 +825,7 @@ function applyFilter() {
 function resetFilter() {
   GF = null;
   selectAllCB('cb-spots'); selectAllCB('cb-methods');
-  document.getElementById('active-filter-banner').style.display = 'none';
+  // active-filter-banner removed
   document.getElementById('filter-status').textContent = '↺ リセットしました';
   const allSpots   = G.all_spots   || [];
   const allMethods = G.all_methods || [];
@@ -925,20 +920,24 @@ function updateSPBadges(spChecked, areaChecked) {
 
 function selectAllSPCB() {
   document.querySelectorAll('#species-cb-list input').forEach(cb => cb.checked = true);
-  // toggle state updated via updateToggleState
+  document.querySelectorAll('#species-cb-list .cb-group').forEach(g=>{updateToggleState(g);updateGroupHighlight(g);});
+  updateRealtimeCount();
 }
 
 function selectNoneSPCB() {
   document.querySelectorAll('#species-cb-list input').forEach(cb => cb.checked = false);
-  // toggle state updated via updateToggleState
+  document.querySelectorAll('#species-cb-list .cb-group').forEach(g=>{updateToggleState(g);updateGroupHighlight(g);});
+  updateRealtimeCount();
 }
 
 function selectAllAreaCB() {
   document.querySelectorAll('#area-chips-list input').forEach(cb => cb.checked = true);
+  updateRealtimeCount();
 }
 
 function selectNoneAreaCB() {
   document.querySelectorAll('#area-chips-list input').forEach(cb => cb.checked = false);
+  updateRealtimeCount();
 }
 
 
@@ -975,6 +974,7 @@ function refreshSpeciesCBPanel(profiles) {
       cbs.forEach(cb => cb.checked = !anyOn);
       updateToggleState(grpDiv);
       updateGroupHighlight(grpDiv);
+      updateRealtimeCount();
     };
     hdr.appendChild(arrow); hdr.appendChild(lbl); hdr.appendChild(countSpan); hdr.appendChild(toggle);
     hdr.addEventListener('click', (e) => {
@@ -1148,9 +1148,8 @@ function filterByDateRange(ts, prefix) {
   const from = fromEl?.value ? new Date(fromEl.value) : null;
   const to   = toEl?.value   ? new Date(toEl.value)   : null;
   if (!from && !to) {
-    // デフォルト: 直近1年
-    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-365);
-    return ts.filter(r=>new Date(r.date)>=cutoff);
+    // デフォルト: 全期間（全データ表示）
+    return ts;
   }
   return ts.filter(r => {
     const d = new Date(r.date);
@@ -1269,41 +1268,46 @@ function renderTideTimeline() {
       y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},
          title:{display:true,text:'推定潮位',color:'#94a8bc'}}
     }
-  }, plugins:[tideColorPlugin]});
+  }, plugins:[tideColorPlugin, moonPhasePlugin]});
 
-  // ── 月の満ち欠けストリップ ──
-  const strip = document.getElementById('moon-phase-strip');
-  if (strip) {
-    const step = Math.max(1, Math.floor(fil.length / 60));
-    let html = '';
-    fil.forEach((r,i) => {
-      if (i % step !== 0) return;
-      const ag = r['月齢'] ?? 0;
-      const phase = ag / 29.53;
-      // SVG moon phase
-      const size = 24;
-      let svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0;">`;
-      svg += `<circle cx="${size/2}" cy="${size/2}" r="${size/2-1}" fill="#e9c46a"/>`;
-      // Shadow
-      const shadowX = Math.cos(phase * 2 * Math.PI) * (size/2-1);
-      if (phase < 0.5) {
-        // waxing: shadow from right
-        svg += `<ellipse cx="${size/2}" cy="${size/2}" rx="${Math.abs(shadowX)}" ry="${size/2-1}" fill="#1a2e44"/>`;
-      } else {
-        // waning: shadow from left
-        svg += `<ellipse cx="${size/2}" cy="${size/2}" rx="${Math.abs(shadowX)}" ry="${size/2-1}" fill="#1a2e44"/>`;
-      }
-      if (ag < 1 || ag > 28.5) {
-        svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0;"><circle cx="${size/2}" cy="${size/2}" r="${size/2-1}" fill="#2a4060" stroke="#5a7a99" stroke-width="1"/>`;
-      } else if (ag > 13.5 && ag < 16) {
-        svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0;"><circle cx="${size/2}" cy="${size/2}" r="${size/2-1}" fill="#e9c46a"/>`;
-      }
-      svg += '</svg>';
-      const dateStr = r.date.slice(5);
-      html += `<div style="text-align:center;min-width:28px;" title="${r.date} 月齢${ag.toFixed(1)}">${svg}<div style="font-size:.55rem;color:var(--text3);">${dateStr}</div></div>`;
-    });
-    strip.innerHTML = html;
-  }
+  // ── 月の満ち欠けをグラフ内（下部）に描画するプラグイン ──
+  const moonPhasePlugin = {
+    id:'moonPhase',
+    afterDraw(chart) {
+      const {ctx, chartArea:{left,right,bottom}, scales:{x,y}} = chart;
+      if(!x||!y) return;
+      const step = Math.max(1, Math.floor(fil.length / 40));
+      const moonY = y.getPixelForValue(y.min * 0.6);
+      const r = 8;
+      fil.forEach((r_entry,i) => {
+        if (i % step !== 0) return;
+        const ag = r_entry['月齢'] ?? 0;
+        const xPx = x.getPixelForValue(i);
+        if (xPx < left || xPx > right) return;
+        ctx.save();
+        // Draw moon circle
+        ctx.beginPath();
+        ctx.arc(xPx, moonY, r, 0, Math.PI*2);
+        if (ag < 1 || ag > 28.5) {
+          // New moon
+          ctx.fillStyle = '#2a4060'; ctx.fill();
+          ctx.strokeStyle = '#5a7a99'; ctx.lineWidth = 0.8; ctx.stroke();
+        } else if (ag > 13.5 && ag < 16) {
+          // Full moon
+          ctx.fillStyle = '#e9c46a'; ctx.fill();
+        } else {
+          // Partial: draw full yellow, then shadow
+          ctx.fillStyle = '#e9c46a'; ctx.fill();
+          ctx.beginPath();
+          const phase = ag / 29.53;
+          const shadowRx = Math.abs(Math.cos(phase * 2 * Math.PI)) * r;
+          ctx.ellipse(xPx, moonY, shadowRx, r, 0, 0, Math.PI*2);
+          ctx.fillStyle = '#1a2e44'; ctx.fill();
+        }
+        ctx.restore();
+      });
+    }
+  };
 
   // ── 潮汐種別×月齢帯 棒グラフ（新月大潮〜満月大潮） ──
   const spArr = Array.isArray(spF) ? spF : (spF ? [spF] : []);
@@ -1370,6 +1374,39 @@ function switchTab(name) {
 // ══════════════════════════════════════════════════════════
 let GSETTINGS = { spots: [], methods: [], species: [], areas: ['室戸沖'], applied: false };
 
+function calcFilteredCount() {
+  if (!G) return 0;
+  const spots = getCheckedVals('cb-spots');
+  const methods = getCheckedVals('cb-methods');
+  const spChecked = [...document.querySelectorAll('#species-cb-list input:checked')].map(cb => cb.value);
+  const allRecs = G.records || [];
+  // 釣り場・釣法フィルター
+  let recs = allRecs;
+  if (spots.length && spots.length < (G.all_spots||[]).length) {
+    recs = recs.filter(r => spots.includes(r.spot));
+  }
+  if (methods.length && methods.length < (G.all_methods||[]).length) {
+    recs = recs.filter(r => methods.includes(r.method));
+  }
+  // 魚種フィルター
+  if (spChecked.length) {
+    recs = recs.filter(r => spChecked.includes(r.species));
+  }
+  return recs.length;
+}
+
+function updateRealtimeCount() {
+  const count = calcFilteredCount();
+  const el = document.getElementById('filter-result-banner');
+  if (!el) return;
+  const spots = getCheckedVals('cb-spots');
+  const methods = getCheckedVals('cb-methods');
+  const spChecked = [...document.querySelectorAll('#species-cb-list input:checked')].map(cb => cb.value);
+  const areaChecked = [...document.querySelectorAll('#area-chips-list input:checked')].map(cb => cb.value);
+  el.style.display = 'block';
+  el.innerHTML = '📊 現在の選択: 釣り場<b>' + spots.length + '</b>件 × 釣法<b>' + methods.length + '</b>件 × 魚種<b>' + spChecked.length + '</b>種 × 海域<b>' + areaChecked.length + '</b> ＝ <b style="color:var(--accent);font-size:1.05em;">' + count + '件</b>';
+}
+
 function applyAllSettings() {
   // 釣り場・釣法フィルタ適用
   applyFilter();
@@ -1381,15 +1418,12 @@ function applyAllSettings() {
   const spChecked = [...document.querySelectorAll('#species-cb-list input:checked')].map(cb => cb.value);
   const areaChecked = [...document.querySelectorAll('#area-chips-list input:checked')].map(cb => cb.value);
   GSETTINGS = { spots, methods, species: spChecked, areas: areaChecked, applied: true };
-  // フィルター結果バナー表示
-  const recs = GF ? GF.filteredRecords : (G?.records||[]);
-  const totalCatch = recs.reduce((s,r) => s + (+r.count||1), 0);
+  // フィルター結果バナー表示（正確な匹数）
+  const totalCatch = calcFilteredCount();
   const banner = document.getElementById('filter-result-banner');
-  if (banner && (spots.length || spChecked.length)) {
+  if (banner) {
     banner.style.display = 'block';
-    banner.innerHTML = '🎯 フィルター適用中: 釣り場<b>' + spots.length + '</b>件 × 釣法<b>' + methods.length + '</b>件 × 魚種<b>' + spChecked.length + '</b>種 → <b>' + totalCatch + '</b>匹、<b>' + areaChecked.length + '</b>海域';
-  } else if (banner) {
-    banner.style.display = 'none';
+    banner.innerHTML = '🎯 フィルター適用中: 釣り場<b>' + spots.length + '</b>件 × 釣法<b>' + methods.length + '</b>件 × 魚種<b>' + spChecked.length + '</b>種 × 海域<b>' + areaChecked.length + '</b> ＝ <b style="color:var(--accent);font-size:1.05em;">' + totalCatch + '件</b>';
   }
   document.getElementById('settings-status').textContent = '✅ 設定を適用しました';
   setTimeout(() => { document.getElementById('settings-status').textContent = ''; }, 3000);
@@ -1408,11 +1442,11 @@ function applyAllSettings() {
 function resetAllSettings() {
   resetFilter();
   resetSPFilter();
-  const banner = document.getElementById('filter-result-banner'); if(banner) banner.style.display='none';
   GSETTINGS = { spots: [], methods: [], species: [], areas: ['室戸沖'], applied: false };
   document.getElementById('settings-status').textContent = '↺ 全設定をリセットしました';
   setTimeout(() => { document.getElementById('settings-status').textContent = ''; }, 3000);
   updateConditionBars();
+  updateRealtimeCount();
 }
 
 function updateConditionBars() {
@@ -1435,7 +1469,8 @@ function updateConditionBars() {
   if (!hasSettings || !G) {
     displayText = '⚙ 条件未設定 — 設定タブで解析条件を選択してください';
   } else {
-    displayText = '📍 釣り場: <span>' + spotText + '</span> ／ 🎣 釣法: <span>' + methodText + '</span> ／ 🐟 魚種: <span>' + spText + '</span> ／ 🌊 海域: <span>' + areaText + '</span>';
+    const cnt = calcFilteredCount();
+    displayText = '📍 釣り場: <span>' + spotText + '</span> ／ 🎣 釣法: <span>' + methodText + '</span> ／ 🐟 魚種: <span>' + spText + '</span> ／ 🌊 海域: <span>' + areaText + '</span> ＝ <span>' + cnt + '件</span>';
   }
 
   // 全タブの条件バーを更新
