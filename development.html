@@ -71,6 +71,19 @@ body{background:var(--bg);font-family:'Yu Gothic UI','Meiryo UI','Hiragino Sans'
 .cb-group-chips.collapsed{display:none;}
 #filter-status{font-size:.79rem;color:var(--text3);}
 #active-filter-banner{display:none;background:rgba(244,162,97,.08);border-bottom:1px solid rgba(244,162,97,.25);padding:6px 24px;font-size:.79rem;color:#f4a261;}
+/* ─── 設定タブ ─── */
+#tab-settings .settings-section{margin-bottom:20px;}
+#tab-settings .settings-section-title{font-size:.82rem;font-weight:700;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.settings-confirm-row{display:flex;align-items:center;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.btn-confirm{padding:10px 28px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;transition:filter .15s;letter-spacing:.3px;}
+.btn-confirm:hover{filter:brightness(1.15);}
+#settings-status{font-size:.82rem;color:var(--green);}
+/* ─── 条件バー（各タブ上部） ─── */
+.condition-bar{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 14px;margin-bottom:14px;flex-wrap:wrap;gap:6px;}
+.condition-text{font-size:.78rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}
+.condition-text span{color:var(--accent);font-weight:700;}
+.btn-goto-settings{padding:5px 14px;border:1px solid var(--accent2);border-radius:6px;background:rgba(0,119,182,.12);color:var(--accent);font-family:inherit;font-size:.76rem;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.btn-goto-settings:hover{background:var(--accent2);color:#fff;}
 /* ─── タブ ─── */
 .tab-nav{display:flex;background:var(--surface);border-bottom:2px solid var(--border);padding:0 20px;gap:4px;flex-wrap:wrap;}
 .tab-btn{padding:11px 18px;background:none;border:none;color:var(--text2);font-family:inherit;font-size:.85rem;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;}
@@ -157,52 +170,12 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
   </div>
 </div>
 
-<!-- ─── フィルターパネル ─── -->
-<div id="filter-bar">
-  <button id="filter-toggle" onclick="toggleFilter()">
-    <span>🎯 解析対象フィルター</span>
-    <span style="font-size:.75rem;color:var(--text3);margin-left:4px;">釣り場・釣法を絞り込む</span>
-    <div id="filter-badge">
-      <span class="fbadge" id="badge-spots">釣り場: すべて</span>
-      <span class="fbadge" id="badge-methods">釣法: すべて</span>
-      <span class="fbadge" id="badge-records" style="display:none;"></span>
-    </div>
-    <span class="ft-arrow" id="ft-arrow">▼</span>
-  </button>
-  <div id="filter-body">
-    <div class="filter-cols">
-      <div>
-        <div class="fcol-title">🗺 釣り場</div>
-        <div class="fcol-actions">
-          <button class="flink" onclick="selectAllCB('cb-spots')">全選択</button>
-          <button class="flink" onclick="selectNoneCB('cb-spots')">全解除</button>
-        </div>
-        <div class="cb-list-grouped" id="cb-spots"></div>
-      </div>
-      <div>
-        <div class="fcol-title">🎣 釣法</div>
-        <div class="fcol-actions">
-          <button class="flink" onclick="selectAllCB('cb-methods')">全選択</button>
-          <button class="flink" onclick="selectNoneCB('cb-methods')">全解除</button>
-        </div>
-        <div class="cb-list-grouped" id="cb-methods"></div>
-      </div>
-    </div>
-    <div class="filter-apply-row">
-      <button class="btn-apply" onclick="applyFilter()">✅ この条件で解析</button>
-      <button class="btn-reset" onclick="resetFilter()">↺ リセット（全選択）</button>
-      <span id="filter-status"></span>
-    </div>
-  </div>
-</div>
-<div id="active-filter-banner">
-  🎯 フィルター適用中: <span id="banner-text"></span>
-  &nbsp;<button onclick="resetFilter()" style="background:none;border:none;color:#f4a261;cursor:pointer;text-decoration:underline;font-size:.78rem;">リセット</button>
-</div>
+<div id="active-filter-banner" style="display:none;">🎯 フィルター適用中: <span id="banner-text"></span></div>
 
 <!-- ─── タブナビ ─── -->
 <div class="tab-nav">
-  <button class="tab-btn active" onclick="switchTab('overview')">📊 魚種解析</button>
+  <button class="tab-btn active" onclick="switchTab('settings')">⚙ 設定</button>
+  <button class="tab-btn" onclick="switchTab('overview')">📊 魚種解析</button>
   <button class="tab-btn" onclick="switchTab('predict')">🔮 釣れ予測</button>
   <button class="tab-btn" onclick="switchTab('timeline')">🌡 水温タイムライン</button>
   <button class="tab-btn" onclick="switchTab('current-tl')">🌊 流速・流向タイムライン</button>
@@ -212,59 +185,99 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
   <button class="tab-btn" onclick="switchTab('load')">📂 データ読込</button>
 </div>
 
-<!-- ═══ 魚種解析タブ ═══════════════════════════════════ -->
-<div class="tab-content active" id="tab-overview">
-  <!-- 魚種・海域選択フィルター（解析対象フィルターと同構造） -->
-  <select id="species-select" multiple style="display:none;"></select>
-  <div id="sp-filter-bar">
-    <button id="sp-filter-toggle" onclick="toggleSPFilter()">
-      <span>🐟 解析魚種・潮流データ海域選択フィルター</span>
-      <div id="sp-filter-badge">
-        <span class="fbadge" id="badge-species">魚種: 未選択</span>
-        <span class="fbadge" id="badge-area">海域: 室戸沖</span>
-        <span id="filter-note" style="font-size:.72rem;display:none;"></span>
-      </div>
-      <span class="ft-arrow" id="sp-ft-arrow">▼</span>
-    </button>
-    <div id="sp-filter-body">
-      <div class="filter-cols">
-        <div>
-          <div class="fcol-title">🐟 解析する魚種</div>
-          <div class="fcol-actions">
-            <button class="flink" onclick="selectAllSPCB()">全選択</button>
-            <button class="flink" onclick="selectNoneSPCB()">全解除</button>
+<!-- ═══ 設定タブ ═══════════════════════════════════════ -->
+<div class="tab-content active" id="tab-settings">
+  <div class="card">
+    <div class="card-title">⚙ 解析条件の一括設定</div>
+    <p style="font-size:.82rem;color:var(--text2);margin-bottom:16px;">
+      釣り場・釣法・魚種・海域をまとめて設定し、全タブに反映します。
+    </p>
+
+    <!-- 釣り場・釣法セクション -->
+    <div class="settings-section">
+      <div class="settings-section-title">🎯 釣り場・釣法フィルター</div>
+      <div id="filter-body-settings" style="display:block;padding:0;">
+        <div class="filter-cols">
+          <div>
+            <div class="fcol-title">🗺 釣り場</div>
+            <div class="fcol-actions">
+              <button class="flink" onclick="selectAllCB('cb-spots')">全選択</button>
+              <button class="flink" onclick="selectNoneCB('cb-spots')">全解除</button>
+            </div>
+            <div class="cb-list-grouped" id="cb-spots"></div>
           </div>
-          <div class="cb-list-grouped" id="species-cb-list"></div>
+          <div>
+            <div class="fcol-title">🎣 釣法</div>
+            <div class="fcol-actions">
+              <button class="flink" onclick="selectAllCB('cb-methods')">全選択</button>
+              <button class="flink" onclick="selectNoneCB('cb-methods')">全解除</button>
+            </div>
+            <div class="cb-list-grouped" id="cb-methods"></div>
+          </div>
         </div>
-        <div>
-          <div class="fcol-title">🌊 潮流データの海域</div>
-          <div class="fcol-actions">
-            <button class="flink" onclick="selectAllAreaCB()">全選択</button>
-            <button class="flink" onclick="selectNoneAreaCB()">全解除</button>
-          </div>
-          <div class="cb-group-chips" id="area-chips-list">
-            <label class="cb-chip"><input type="checkbox" value="室戸沖" checked>&nbsp;室戸沖</label>
-            <label class="cb-chip"><input type="checkbox" value="北西">&nbsp;北西</label>
-            <label class="cb-chip"><input type="checkbox" value="西">&nbsp;西</label>
-            <label class="cb-chip"><input type="checkbox" value="東">&nbsp;東</label>
-            <label class="cb-chip"><input type="checkbox" value="北東">&nbsp;北東</label>
-          </div>
-          <select id="area-select" multiple style="display:none;">
-            <option value="室戸沖" selected>室戸沖</option>
-            <option value="北西">北西</option>
-            <option value="西">西</option>
-            <option value="東">東</option>
-            <option value="北東">北東</option>
-          </select>
-        </div>
-      </div>
-      <div class="filter-apply-row">
-        <button class="btn-apply" onclick="applySPFilter()">✅ この条件で解析</button>
-        <button class="btn-reset" onclick="resetSPFilter()">↺ リセット（全解除）</button>
-        <span id="sp-filter-status"></span>
+        <span id="filter-status" style="font-size:.79rem;color:var(--text3);display:block;margin-top:8px;"></span>
       </div>
     </div>
+
+    <!-- 魚種・海域セクション -->
+    <div class="settings-section">
+      <div class="settings-section-title">🐟 解析魚種・潮流データ海域</div>
+      <select id="species-select" multiple style="display:none;"></select>
+      <div id="sp-filter-body-settings" style="display:block;padding:0;">
+        <div class="filter-cols">
+          <div>
+            <div class="fcol-title">🐟 解析する魚種</div>
+            <div class="fcol-actions">
+              <button class="flink" onclick="selectAllSPCB()">全選択</button>
+              <button class="flink" onclick="selectNoneSPCB()">全解除</button>
+            </div>
+            <div class="cb-list-grouped" id="species-cb-list"></div>
+          </div>
+          <div>
+            <div class="fcol-title">🌊 潮流データの海域</div>
+            <div class="fcol-actions">
+              <button class="flink" onclick="selectAllAreaCB()">全選択</button>
+              <button class="flink" onclick="selectNoneAreaCB()">全解除</button>
+            </div>
+            <div class="cb-group-chips" id="area-chips-list">
+              <label class="cb-chip"><input type="checkbox" value="室戸沖" checked>&nbsp;室戸沖</label>
+              <label class="cb-chip"><input type="checkbox" value="北西">&nbsp;北西</label>
+              <label class="cb-chip"><input type="checkbox" value="西">&nbsp;西</label>
+              <label class="cb-chip"><input type="checkbox" value="東">&nbsp;東</label>
+              <label class="cb-chip"><input type="checkbox" value="北東">&nbsp;北東</label>
+            </div>
+            <select id="area-select" multiple style="display:none;">
+              <option value="室戸沖" selected>室戸沖</option>
+              <option value="北西">北西</option>
+              <option value="西">西</option>
+              <option value="東">東</option>
+              <option value="北東">北東</option>
+            </select>
+          </div>
+        </div>
+        <span id="sp-filter-status" style="font-size:.79rem;color:var(--text3);display:block;margin-top:8px;"></span>
+      </div>
+    </div>
+
+    <!-- 確定ボタン -->
+    <div class="settings-confirm-row">
+      <button class="btn-confirm" onclick="applyAllSettings()">✅ この条件で解析</button>
+      <button class="btn-reset" onclick="resetAllSettings()">↺ 全リセット</button>
+      <span id="settings-status"></span>
+    </div>
   </div>
+</div>
+
+<!-- ═══ 魚種解析タブ ═══════════════════════════════════ -->
+<div class="tab-content" id="tab-overview">
+  <div class="condition-bar">
+    <div class="condition-text" id="condition-display-overview">⚙ 条件未設定 — 設定タブで解析条件を選択してください</div>
+    <button class="btn-goto-settings" onclick="switchTab('settings')">⚙ 設定変更</button>
+  </div>
+  <!-- 魚種・海域フィルターは設定タブに移動 -->
+  <span id="filter-note" style="display:none;"></span>
+  <span id="badge-species" style="display:none;">魚種: 未選択</span>
+  <span id="badge-area" style="display:none;">海域: 室戸沖</span>
   <div id="ov-content" style="display:none;">
     <div class="summary-grid" id="summary-cards"></div>
     <div class="chart-grid">
@@ -311,6 +324,10 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
 
 <!-- ═══ 釣れ予測タブ ═══════════════════════════════════ -->
 <div class="tab-content" id="tab-predict">
+  <div class="condition-bar">
+    <div class="condition-text" id="condition-display-predict">⚙ 条件未設定 — 設定タブで解析条件を選択してください</div>
+    <button class="btn-goto-settings" onclick="switchTab('settings')">⚙ 設定変更</button>
+  </div>
   <div class="ctrl-row">
     <label>表示魚種（複数可）：</label>
     <select id="pred-species" onchange="renderPrediction()" multiple style="height:90px;min-width:200px;"></select>
@@ -330,6 +347,10 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
 
 <!-- ═══ 水温タイムラインタブ ═══════════════════════════ -->
 <div class="tab-content" id="tab-timeline">
+  <div class="condition-bar">
+    <div class="condition-text" id="condition-display-timeline">⚙ 条件未設定 — 設定タブで解析条件を選択してください</div>
+    <button class="btn-goto-settings" onclick="switchTab('settings')">⚙ 設定変更</button>
+  </div>
   <div class="ctrl-row">
     <label>表示期間：</label>
     <select id="tl-range" onchange="renderTimeline()">
@@ -357,6 +378,10 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
 
 <!-- ═══ 流速・流向タイムラインタブ ════════════════════════ -->
 <div class="tab-content" id="tab-current-tl">
+  <div class="condition-bar">
+    <div class="condition-text" id="condition-display-current-tl">⚙ 条件未設定 — 設定タブで解析条件を選択してください</div>
+    <button class="btn-goto-settings" onclick="switchTab('settings')">⚙ 設定変更</button>
+  </div>
   <div class="ctrl-row">
     <label>表示期間：</label>
     <select id="ctl-range" onchange="renderCurrentTimeline()">
@@ -390,6 +415,10 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
 
 <!-- ═══ 月齢タイムラインタブ ══════════════════════════════ -->
 <div class="tab-content" id="tab-moon-tl">
+  <div class="condition-bar">
+    <div class="condition-text" id="condition-display-moon-tl">⚙ 条件未設定 — 設定タブで解析条件を選択してください</div>
+    <button class="btn-goto-settings" onclick="switchTab('settings')">⚙ 設定変更</button>
+  </div>
   <div class="ctrl-row">
     <label>表示期間：</label>
     <select id="mtl-range" onchange="renderMoonTimeline()">
@@ -417,6 +446,10 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
 
 <!-- ═══ 5地点海流タブ ════════════════════════════════════ -->
 <div class="tab-content" id="tab-current5">
+  <div class="condition-bar">
+    <div class="condition-text" id="condition-display-current5">⚙ 条件未設定 — 設定タブで解析条件を選択してください</div>
+    <button class="btn-goto-settings" onclick="switchTab('settings')">⚙ 設定変更</button>
+  </div>
   <div class="ctrl-row">
     <label>表示モード：</label>
     <select id="c5-mode" onchange="renderCurrent5()">
@@ -444,6 +477,10 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
 
 <!-- ═══ 魚種比較タブ ════════════════════════════════════ -->
 <div class="tab-content" id="tab-compare">
+  <div class="condition-bar">
+    <div class="condition-text" id="condition-display-compare">⚙ 条件未設定 — 設定タブで解析条件を選択してください</div>
+    <button class="btn-goto-settings" onclick="switchTab('settings')">⚙ 設定変更</button>
+  </div>
   <div class="ctrl-row">
     <label>魚種A：</label><select id="cmp-a" onchange="renderCompare()"><option value="">--</option></select>
     <label>vs B：</label><select id="cmp-b" onchange="renderCompare()"><option value="">--</option></select>
@@ -500,7 +537,7 @@ window.addEventListener('DOMContentLoaded', () => {
       .then(data => initApp(data))
       .catch(() => {
         document.getElementById('load-status').textContent = 'データが見つかりません。「データ読込」タブからJSONを選択してください。';
-        setTimeout(() => { document.getElementById('loading-overlay').style.display = 'none'; switchTab('load'); }, 1500);
+        setTimeout(() => { const lo = document.getElementById('loading-overlay'); if(lo) lo.style.display = 'none'; switchTab('load'); }, 1500);
       });
   }
 });
@@ -534,6 +571,8 @@ function initApp(data) {
   renderMoonTimeline();
   renderPrediction();
   renderCurrent5();
+  updateConditionBars();
+  switchTab('settings');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -650,11 +689,13 @@ function buildGroupedCBList(containerId, allItems, groupDefs) {
 }
 
 function toggleFilter() {
+  // 設定タブでは常時表示のため、この関数は互換性のために残す
   const body  = document.getElementById('filter-body');
+  if (!body) return;
   const arrow = document.getElementById('ft-arrow');
   const open  = body.style.display === 'block';
   body.style.display  = open ? 'none' : 'block';
-  arrow.classList.toggle('open', !open);
+  if (arrow) arrow.classList.toggle('open', !open);
 }
 
 function selectAllCB(id)  { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = true); }
@@ -695,10 +736,7 @@ function applyFilter() {
     updateBadge(spots.length, allSpots.length, methods.length, allMethods.length, recs.length);
   }
 
-  // パネルを閉じる
-  document.getElementById('filter-body').style.display = 'none';
-  document.getElementById('ft-arrow').classList.remove('open');
-
+  // パネルはsettingsタブ内で常時表示なので閉じない
   refreshSpeciesSelects(GF ? GF.profiles : G.species_profiles || {});
   const sel = document.getElementById('species-select');
   if (sel.value) loadSpeciesProfile();
@@ -743,11 +781,13 @@ const SPECIES_GROUPS = [
 //  魚種・海域パネル（折りたたみ・グループ選択）
 // ══════════════════════════════════════════════════════════
 function toggleSPFilter() {
+  // 設定タブでは常時表示のため、この関数は互換性のために残す
   const body  = document.getElementById('sp-filter-body');
+  if (!body) return;
   const arrow = document.getElementById('sp-ft-arrow');
   const open  = body.style.display === 'block';
   body.style.display  = open ? 'none' : 'block';
-  arrow.classList.toggle('open', !open);
+  if (arrow) arrow.classList.toggle('open', !open);
 }
 
 function applySPFilter() {
@@ -764,9 +804,6 @@ function applySPFilter() {
   if (areaSel) { [...areaSel.options].forEach(o => { o.selected = areaChecked.includes(o.value); }); }
   // バッジ更新
   updateSPBadges(spChecked, areaChecked);
-  // パネルを閉じる
-  document.getElementById('sp-filter-body').style.display = 'none';
-  document.getElementById('sp-ft-arrow').classList.remove('open');
   document.getElementById('sp-filter-status').textContent = '✅ ' + spChecked.length + '種・' + areaChecked.length + '海域で解析';
   loadSpeciesProfile();
 }
@@ -1016,6 +1053,72 @@ function switchTab(name) {
     b.classList.toggle('active', b.getAttribute('onclick').includes("'"+name+"'")));
   document.querySelectorAll('.tab-content').forEach(el =>
     el.classList.toggle('active', el.id === 'tab-'+name));
+  // 各タブの条件バーを更新
+  if (name !== 'settings' && name !== 'load') updateConditionBars();
+}
+
+// ══════════════════════════════════════════════════════════
+//  グローバル設定管理
+// ══════════════════════════════════════════════════════════
+let GSETTINGS = { spots: [], methods: [], species: [], areas: ['室戸沖'], applied: false };
+
+function applyAllSettings() {
+  // 釣り場・釣法フィルタ適用
+  applyFilter();
+  // 魚種・海域フィルタ適用
+  applySPFilter();
+  // 設定状態を記録
+  const spots = getCheckedVals('cb-spots');
+  const methods = getCheckedVals('cb-methods');
+  const spChecked = [...document.querySelectorAll('#species-cb-list input:checked')].map(cb => cb.value);
+  const areaChecked = [...document.querySelectorAll('#area-chips-list input:checked')].map(cb => cb.value);
+  GSETTINGS = { spots, methods, species: spChecked, areas: areaChecked, applied: true };
+  // ステータス表示
+  document.getElementById('settings-status').textContent = '✅ 設定を適用しました';
+  setTimeout(() => { document.getElementById('settings-status').textContent = ''; }, 3000);
+  // 条件バー更新
+  updateConditionBars();
+  // 魚種解析タブに遷移
+  switchTab('overview');
+}
+
+function resetAllSettings() {
+  resetFilter();
+  resetSPFilter();
+  GSETTINGS = { spots: [], methods: [], species: [], areas: ['室戸沖'], applied: false };
+  document.getElementById('settings-status').textContent = '↺ 全設定をリセットしました';
+  setTimeout(() => { document.getElementById('settings-status').textContent = ''; }, 3000);
+  updateConditionBars();
+}
+
+function updateConditionBars() {
+  const spots = getCheckedVals('cb-spots');
+  const methods = getCheckedVals('cb-methods');
+  const spChecked = [...document.querySelectorAll('#species-cb-list input:checked')].map(cb => cb.value);
+  const areaChecked = [...document.querySelectorAll('#area-chips-list input:checked')].map(cb => cb.value);
+
+  const allSpots = G ? (G.all_spots || []) : [];
+  const allMethods = G ? (G.all_methods || []) : [];
+  const allSpecies = document.querySelectorAll('#species-cb-list input');
+
+  let spotText = spots.length === allSpots.length ? 'すべて' : spots.length + '件';
+  let methodText = methods.length === allMethods.length ? 'すべて' : methods.length + '件';
+  let spText = spChecked.length === 0 ? '未選択' : spChecked.length === allSpecies.length ? 'すべて' : spChecked.length + '種';
+  let areaText = areaChecked.length === 0 ? '未選択' : areaChecked.join('・');
+
+  let hasSettings = spots.length > 0 || spChecked.length > 0;
+  let displayText;
+  if (!hasSettings || !G) {
+    displayText = '⚙ 条件未設定 — 設定タブで解析条件を選択してください';
+  } else {
+    displayText = '📍 釣り場: <span>' + spotText + '</span> ／ 🎣 釣法: <span>' + methodText + '</span> ／ 🐟 魚種: <span>' + spText + '</span> ／ 🌊 海域: <span>' + areaText + '</span>';
+  }
+
+  // 全タブの条件バーを更新
+  ['overview','predict','timeline','current-tl','moon-tl','current5','compare'].forEach(tab => {
+    const el = document.getElementById('condition-display-' + tab);
+    if (el) el.innerHTML = displayText;
+  });
 }
 
 // ══════════════════════════════════════════════════════════
