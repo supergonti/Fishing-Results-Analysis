@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>室戸沖 釣果データ解析ソフト v2.1</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0d1b2a;--surface:#1a2e44;--surface2:#1e3550;
+  --accent:#00b4d8;--accent2:#0077b6;--gold:#f4a261;
+  --green:#2ec4b6;--red:#e63946;--purple:#7b2d8b;
+  --text:#e0e7ef;--text2:#94a8bc;--text3:#5a7a99;
+  --border:#2a4060;--r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Yu Gothic UI','Meiryo UI','Hiragino Sans',sans-serif;color:var(--text);min-height:100vh;}
+/* ─── ヘッダー ─── */
+.app-header{background:linear-gradient(135deg,#0a1628,#152b45);padding:14px 24px;display:flex;align-items:center;gap:16px;border-bottom:2px solid var(--accent2);}
+.app-header .icon{font-size:2rem;}
+.app-header h1{font-size:1.3rem;color:var(--accent);}
+.app-header p{font-size:.75rem;color:var(--text3);margin-top:2px;}
+.header-meta{margin-left:auto;text-align:right;font-size:.75rem;color:var(--text3);line-height:1.6;}
+.header-meta b{color:var(--accent);}
+/* ─── フィルターパネル ─── */
+#filter-bar{background:var(--surface);border-bottom:1px solid var(--border);}
+#filter-toggle{width:100%;display:flex;align-items:center;gap:10px;padding:10px 24px;background:none;border:none;color:var(--text2);font-family:inherit;font-size:.86rem;cursor:pointer;text-align:left;transition:background .15s;}
+#filter-toggle:hover{background:rgba(255,255,255,.04);}
+.ft-arrow{font-size:.75rem;transition:transform .25s;margin-left:auto;}
+.ft-arrow.open{transform:rotate(180deg);}
+#filter-badge{display:flex;align-items:center;gap:6px;margin-left:8px;}
+.fbadge{padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:700;background:rgba(0,180,216,.12);color:var(--accent);border:1px solid rgba(0,180,216,.25);}
+.fbadge.active{background:rgba(244,162,97,.18);color:#f4a261;border-color:rgba(244,162,97,.4);}
+#filter-body{display:none;padding:14px 24px 18px;border-top:1px solid var(--border);}
+.filter-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:600px){.filter-cols{grid-template-columns:1fr;}}
+.fcol-title{font-size:.75rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+.fcol-actions{display:flex;gap:10px;margin-bottom:7px;}
+.flink{background:none;border:none;color:var(--accent);font-size:.76rem;cursor:pointer;padding:0;text-decoration:underline;}
+.flink:hover{color:#fff;}
+.cb-list{display:flex;flex-wrap:wrap;gap:5px;max-height:130px;overflow-y:auto;padding-right:3px;}
+.cb-list::-webkit-scrollbar{width:4px;}
+.cb-list::-webkit-scrollbar-thumb{background:#2a4060;border-radius:2px;}
+.cb-chip{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:.77rem;color:var(--text2);transition:all .15s;white-space:nowrap;user-select:none;}
+.cb-chip input[type=checkbox]{accent-color:var(--accent);cursor:pointer;width:11px;height:11px;flex-shrink:0;}
+.cb-chip:has(input:checked){border-color:var(--accent);background:rgba(0,180,216,.1);color:var(--text);}
+.filter-apply-row{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap;}
+.btn-apply{padding:8px 22px;border:none;border-radius:8px;background:var(--accent2);color:#fff;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:filter .15s;}
+.btn-apply:hover{filter:brightness(1.15);}
+.btn-reset{padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--text2);font-family:inherit;font-size:.83rem;cursor:pointer;transition:all .15s;}
+.btn-reset:hover{border-color:var(--red);color:var(--red);}
+#filter-status{font-size:.79rem;color:var(--text3);}
+#active-filter-banner{display:none;background:rgba(244,162,97,.08);border-bottom:1px solid rgba(244,162,97,.25);padding:6px 24px;font-size:.79rem;color:#f4a261;}
+/* ─── タブ ─── */
+.tab-nav{display:flex;background:var(--surface);border-bottom:2px solid var(--border);padding:0 20px;gap:4px;flex-wrap:wrap;}
+.tab-btn{padding:11px 18px;background:none;border:none;color:var(--text2);font-family:inherit;font-size:.85rem;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-btn:hover:not(.active){color:var(--text);}
+.tab-content{display:none;padding:20px 24px;}.tab-content.active{display:block;}
+/* ─── 共通 ─── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;margin-bottom:16px;}
+.card-title{font-size:.76rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+.ctrl-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.ctrl-row label{font-size:.84rem;color:var(--text2);white-space:nowrap;}
+select{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 12px;font-family:inherit;font-size:.86rem;outline:none;cursor:pointer;}
+select:focus{border-color:var(--accent);}
+/* ─── サマリーカード ─── */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:16px;}
+.sc{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.sc .sl{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.sc .sv{font-size:1.45rem;font-weight:700;color:var(--accent);}
+.sc .ss{font-size:.72rem;color:var(--text3);margin-top:2px;}
+/* ─── チャートグリッド ─── */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.chart-grid.single{grid-template-columns:1fr;}
+.chart-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.chart-box h3{font-size:.74rem;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;}
+.chart-box canvas{max-height:240px;}
+@media(max-width:700px){.chart-grid{grid-template-columns:1fr;}}
+/* ─── 予測テーブル ─── */
+.pred-table{width:100%;border-collapse:collapse;font-size:.81rem;}
+.pred-table th{padding:8px 10px;text-align:left;background:var(--accent2);color:#fff;font-size:.74rem;letter-spacing:.4px;white-space:nowrap;}
+.pred-table td{padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.pred-table tr:hover td{background:var(--surface2);}
+.score-bar{display:inline-block;height:8px;border-radius:4px;vertical-align:middle;margin-left:5px;}
+.badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.7rem;font-weight:700;}
+.badge-up{background:rgba(0,200,80,.15);color:#00c850;border:1px solid rgba(0,200,80,.3);}
+.badge-down{background:rgba(200,60,50,.15);color:#e05050;border:1px solid rgba(200,60,50,.3);}
+.badge-stable{background:rgba(100,150,200,.15);color:#7ab0d4;border:1px solid rgba(100,150,200,.3);}
+.pred-row-high td{background:rgba(0,180,216,.06);}
+.pred-row-high td:first-child{border-left:3px solid var(--accent);}
+/* ─── プロファイルテーブル ─── */
+.profile-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.profile-table th{padding:7px 10px;background:var(--surface);color:var(--text2);font-weight:700;text-align:left;border-bottom:1px solid var(--border);}
+.profile-table td{padding:7px 10px;border-bottom:1px solid var(--border);}
+.diff-pos{color:#2ec4b6;font-weight:700;}
+.diff-neg{color:#e63946;font-weight:700;}
+/* ─── 5地点カード ─── */
+.pt-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;}
+.pt-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center;}
+.pt-card .pt-name{font-size:.72rem;color:var(--text3);margin-bottom:4px;}
+.pt-card .pt-val{font-size:1.1rem;font-weight:700;color:var(--accent);}
+.pt-card .pt-sub{font-size:.7rem;color:var(--text3);margin-top:2px;}
+@media(max-width:700px){.pt-grid{grid-template-columns:repeat(3,1fr);}}
+/* ─── タイムライン・その他 ─── */
+#timeline-wrap{height:300px;position:relative;}
+#loading-overlay{position:fixed;inset:0;background:rgba(13,27,42,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:10px;}
+#loading-overlay h2{color:var(--accent);font-size:1.2rem;}
+#loading-overlay p{color:var(--text2);font-size:.88rem;}
+.file-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;background:var(--surface2);border:2px dashed var(--border);color:var(--text2);cursor:pointer;font-size:.9rem;transition:all .2s;}
+.file-btn:hover{border-color:var(--accent);color:var(--accent);}
+.footer{text-align:center;padding:18px;color:var(--text3);font-size:.72rem;border-top:1px solid var(--border);margin-top:20px;}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <h2>🎣 解析データ読み込み中...</h2>
+  <p id="load-status">データを準備しています...</p>
+</div>
+
+<!-- ─── ヘッダー ─── -->
+<div class="app-header">
+  <span class="icon">🌊</span>
+  <div>
+    <h1>室戸沖 釣果データ解析ソフト v2.1</h1>
+    <p>3DB統合解析（釣果DB × 5地点海流DB × 気象潮汐DB）</p>
+  </div>
+  <div class="header-meta">
+    生成: <b id="hdr-date">—</b><br>
+    釣果: <b id="hdr-records">—</b>件 ／ 解析: <b id="hdr-species">—</b>種<br>
+    海流DB: <b id="hdr-db2">—</b>件 ／ 条件DB: <b id="hdr-db3">—</b>日
+  </div>
+</div>
+
+<!-- ─── フィルターパネル ─── -->
+<div id="filter-bar">
+  <button id="filter-toggle" onclick="toggleFilter()">
+    <span>🎯 解析対象フィルター</span>
+    <span style="font-size:.75rem;color:var(--text3);margin-left:4px;">釣り場・釣法を絞り込む</span>
+    <div id="filter-badge">
+      <span class="fbadge" id="badge-spots">釣り場: すべて</span>
+      <span class="fbadge" id="badge-methods">釣法: すべて</span>
+      <span class="fbadge" id="badge-records" style="display:none;"></span>
+    </div>
+    <span class="ft-arrow" id="ft-arrow">▼</span>
+  </button>
+  <div id="filter-body">
+    <div class="filter-cols">
+      <div>
+        <div class="fcol-title">🗺 釣り場</div>
+        <div class="fcol-actions">
+          <button class="flink" onclick="selectAllCB('cb-spots')">全選択</button>
+          <button class="flink" onclick="selectNoneCB('cb-spots')">全解除</button>
+        </div>
+        <div class="cb-list" id="cb-spots"></div>
+      </div>
+      <div>
+        <div class="fcol-title">🎣 釣法</div>
+        <div class="fcol-actions">
+          <button class="flink" onclick="selectAllCB('cb-methods')">全選択</button>
+          <button class="flink" onclick="selectNoneCB('cb-methods')">全解除</button>
+        </div>
+        <div class="cb-list" id="cb-methods"></div>
+      </div>
+    </div>
+    <div class="filter-apply-row">
+      <button class="btn-apply" onclick="applyFilter()">✅ この条件で解析</button>
+      <button class="btn-reset" onclick="resetFilter()">↺ リセット（全選択）</button>
+      <span id="filter-status"></span>
+    </div>
+  </div>
+</div>
+<div id="active-filter-banner">
+  🎯 フィルター適用中: <span id="banner-text"></span>
+  &nbsp;<button onclick="resetFilter()" style="background:none;border:none;color:#f4a261;cursor:pointer;text-decoration:underline;font-size:.78rem;">リセット</button>
+</div>
+
+<!-- ─── タブナビ ─── -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('overview')">📊 魚種解析</button>
+  <button class="tab-btn" onclick="switchTab('predict')">🔮 釣れ予測</button>
+  <button class="tab-btn" onclick="switchTab('timeline')">🌡 水温タイムライン</button>
+  <button class="tab-btn" onclick="switchTab('current-tl')">🌊 流速・流向タイムライン</button>
+  <button class="tab-btn" onclick="switchTab('moon-tl')">🌙 月齢タイムライン</button>
+  <button class="tab-btn" onclick="switchTab('current5')">📍 5地点海流</button>
+  <button class="tab-btn" onclick="switchTab('compare')">🔬 魚種比較</button>
+  <button class="tab-btn" onclick="switchTab('load')">📂 データ読込</button>
+</div>
+
+<!-- ═══ 魚種解析タブ ═══════════════════════════════════ -->
+<div class="tab-content active" id="tab-overview">
+  <div class="ctrl-row">
+    <label>解析する魚種：</label>
+    <select id="species-select" multiple onchange="loadSpeciesProfile()"
+      style="height:110px;min-width:200px;">
+    </select>
+    <label>潮流データの海域：</label>
+    <select id="area-select" multiple onchange="loadSpeciesProfile()"
+      style="height:80px;min-width:100px;">
+      <option value="室戸沖" selected>室戸沖</option>
+      <option value="北西">北西</option>
+      <option value="西">西</option>
+      <option value="東">東</option>
+      <option value="北東">北東</option>
+    </select>
+    <span style="font-size:.74rem;color:var(--text3);">Ctrl+クリックで複数選択</span>
+    <span id="filter-note" style="font-size:.76rem;display:none;"></span>
+  </div>
+  <div id="ov-content" style="display:none;">
+    <div class="summary-grid" id="summary-cards"></div>
+    <div class="chart-grid">
+      <div class="chart-box"><h3>🌡 水温帯別釣果分布</h3><canvas id="c-wt-bins"></canvas></div>
+      <div class="chart-box"><h3>📅 月別釣果数</h3><canvas id="c-month"></canvas></div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-box"><h3>🌊 流速帯別釣果分布</h3><canvas id="c-cs-bins"></canvas></div>
+      <div class="chart-box"><h3>🌙 潮汐別釣果分布</h3><canvas id="c-tide"></canvas></div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-box"><h3>📈 水温トレンド（釣れた日の変化方向）</h3><canvas id="c-wt-trend"></canvas></div>
+      <div class="chart-box"><h3>🧭 流れの方向別釣果分布（棒グラフ）</h3><canvas id="c-dir"></canvas></div>
+    </div>
+    <div class="chart-grid single">
+      <div class="chart-box" style="max-height:360px;">
+        <h3>🧭 流れの方向別釣果分布（コンパスチャート）<span id="dir-area-label" style="font-size:.72rem;color:var(--text3);margin-left:8px;"></span></h3>
+        <canvas id="c-dir-radar" style="max-height:300px;"></canvas>
+      </div>
+    </div>
+    <div class="card" id="db2-panel">
+      <div class="card-title">5地点海流プロファイル（釣果日の平均値）</div>
+      <div class="pt-grid" id="pt-cards"></div>
+      <div class="chart-grid">
+        <div class="chart-box"><h3>流速比較（5地点）</h3><canvas id="c-pt-speed"></canvas></div>
+        <div class="chart-box"><h3>水温比較（5地点）</h3><canvas id="c-pt-temp"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">海況条件プロファイル（全期間ベースライン比較）</div>
+      <p style="font-size:.78rem;color:var(--text3);margin-bottom:10px;">釣れた日の平均 vs 全期間平均。<span class="diff-pos">緑＝高め</span>・<span class="diff-neg">赤＝低め</span></p>
+      <table class="profile-table">
+        <thead><tr><th>指標</th><th>釣れた日（平均）</th><th>全期間平均</th><th>差</th><th>中央値</th><th>P25〜P75</th></tr></thead>
+        <tbody id="profile-tbody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">釣り方 ／ 天気 ／ 月相</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;" id="cat-stats"></div>
+    </div>
+  </div>
+  <div id="ov-empty" style="text-align:center;padding:60px;color:var(--text3);">↑ 上の選択肢から魚種を選んでください</div>
+</div>
+
+<!-- ═══ 釣れ予測タブ ═══════════════════════════════════ -->
+<div class="tab-content" id="tab-predict">
+  <div class="ctrl-row">
+    <label>表示魚種（複数可）：</label>
+    <select id="pred-species" onchange="renderPrediction()" multiple style="height:90px;min-width:200px;"></select>
+    <span style="font-size:.76rem;color:var(--text3);">Ctrl+クリックで複数選択</span>
+  </div>
+  <div class="card">
+    <div class="card-title">直近30日 釣れ予測スコアランキング（スコア降順）</div>
+    <p style="font-size:.78rem;color:var(--text3);margin-bottom:10px;">水温適合(40pt) ＋ 水温トレンド(20pt) ＋ 潮汐(20pt) ＋ 月齢(10pt) ＋ 波高(10pt)</p>
+    <div style="overflow-x:auto;">
+      <table class="pred-table"><thead id="pred-thead"></thead><tbody id="pred-tbody"></tbody></table>
+    </div>
+  </div>
+  <div class="chart-grid single">
+    <div class="chart-box"><h3>📆 直近30日 予測スコア推移</h3><canvas id="c-pred-trend" style="max-height:280px;"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ 水温タイムラインタブ ═══════════════════════════ -->
+<div class="tab-content" id="tab-timeline">
+  <div class="ctrl-row">
+    <label>表示期間：</label>
+    <select id="tl-range" onchange="renderTimeline()">
+      <option value="90">直近3ヶ月</option>
+      <option value="180">直近6ヶ月</option>
+      <option value="365" selected>直近1年</option>
+      <option value="730">直近2年</option>
+      <option value="9999">全期間</option>
+    </select>
+    <label>釣果マーカー魚種：</label>
+    <select id="tl-species" onchange="renderTimeline()"><option value="">（全魚種）</option></select>
+    <label style="display:flex;align-items:center;gap:5px;">
+      <input type="checkbox" id="tl-show-current" onchange="renderTimeline()"> 流速も表示
+    </label>
+  </div>
+  <div class="card">
+    <div class="card-title">室戸 水温推移 ＋ 釣果マーカー</div>
+    <div id="timeline-wrap"><canvas id="c-timeline"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">水温トレンド別 釣果記録</div>
+    <div id="trend-calendar" style="font-size:.82rem;color:var(--text2);"></div>
+  </div>
+</div>
+
+<!-- ═══ 流速・流向タイムラインタブ ════════════════════════ -->
+<div class="tab-content" id="tab-current-tl">
+  <div class="ctrl-row">
+    <label>表示期間：</label>
+    <select id="ctl-range" onchange="renderCurrentTimeline()">
+      <option value="90">直近3ヶ月</option>
+      <option value="180">直近6ヶ月</option>
+      <option value="365" selected>直近1年</option>
+      <option value="730">直近2年</option>
+      <option value="9999">全期間</option>
+    </select>
+    <label>釣果マーカー魚種：</label>
+    <select id="ctl-species" onchange="renderCurrentTimeline()"><option value="">（全魚種）</option></select>
+    <label>矢印間隔：</label>
+    <select id="ctl-arrow-step" onchange="renderCurrentTimeline()">
+      <option value="7">7日ごと</option>
+      <option value="14" selected>14日ごと</option>
+      <option value="30">30日ごと</option>
+    </select>
+  </div>
+  <div class="card">
+    <div class="card-title">室戸沖 流速推移 ＋ 流向矢印 ＋ 釣果マーカー</div>
+    <p style="font-size:.76rem;color:var(--text3);margin-bottom:8px;">
+      ⭐ = 各魚種別 重量上位20%の大物　🔴 丸 = 通常釣果　→ 矢印 = 流れの方向
+    </p>
+    <div style="height:320px;position:relative;"><canvas id="c-current-tl"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">流向分布（表示期間内）</div>
+    <div style="height:200px;position:relative;"><canvas id="c-current-dir-hist"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ 月齢タイムラインタブ ══════════════════════════════ -->
+<div class="tab-content" id="tab-moon-tl">
+  <div class="ctrl-row">
+    <label>表示期間：</label>
+    <select id="mtl-range" onchange="renderMoonTimeline()">
+      <option value="90">直近3ヶ月</option>
+      <option value="180">直近6ヶ月</option>
+      <option value="365" selected>直近1年</option>
+      <option value="730">直近2年</option>
+      <option value="9999">全期間</option>
+    </select>
+    <label>釣果マーカー魚種：</label>
+    <select id="mtl-species" onchange="renderMoonTimeline()"><option value="">（全魚種）</option></select>
+  </div>
+  <div class="card">
+    <div class="card-title">月齢サイクル ＋ 釣果マーカー</div>
+    <p style="font-size:.76rem;color:var(--text3);margin-bottom:8px;">
+      ⭐ = 各魚種別 重量上位20%の大物　🔴 丸 = 通常釣果　背景帯: 大潮（青）・中潮（緑）・小潮（橙）期
+    </p>
+    <div style="height:320px;position:relative;"><canvas id="c-moon-tl"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">月齢帯別 釣果分布（大物 vs 通常）</div>
+    <div style="height:220px;position:relative;"><canvas id="c-moon-dist"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ 5地点海流タブ ════════════════════════════════════ -->
+<div class="tab-content" id="tab-current5">
+  <div class="ctrl-row">
+    <label>表示モード：</label>
+    <select id="c5-mode" onchange="renderCurrent5()">
+      <option value="monthly">月次平均（年間サイクル）</option>
+      <option value="recent">直近3ヶ月</option>
+    </select>
+    <label>地点：</label>
+    <select id="c5-point" onchange="renderCurrent5()">
+      <option value="室戸沖">室戸沖</option>
+      <option value="北西">北西</option>
+      <option value="西">西</option>
+      <option value="東">東</option>
+      <option value="北東">北東</option>
+    </select>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-box"><h3>流速月次平均（kn）</h3><canvas id="c5-speed"></canvas></div>
+    <div class="chart-box"><h3>水温月次平均（℃）</h3><canvas id="c5-temp"></canvas></div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-box"><h3>5地点 流速比較（最新月）</h3><canvas id="c5-compare-speed"></canvas></div>
+    <div class="chart-box"><h3>5地点 水温比較（最新月）</h3><canvas id="c5-compare-temp"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ 魚種比較タブ ════════════════════════════════════ -->
+<div class="tab-content" id="tab-compare">
+  <div class="ctrl-row">
+    <label>魚種A：</label><select id="cmp-a" onchange="renderCompare()"><option value="">--</option></select>
+    <label>vs B：</label><select id="cmp-b" onchange="renderCompare()"><option value="">--</option></select>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-box"><h3>🌡 水温分布比較</h3><canvas id="c-cmp-wt"></canvas></div>
+    <div class="chart-box"><h3>📅 月別釣果比較</h3><canvas id="c-cmp-month"></canvas></div>
+    <div class="chart-box"><h3>🌊 流速比較</h3><canvas id="c-cmp-cs"></canvas></div>
+    <div class="chart-box"><h3>🌙 潮汐比較</h3><canvas id="c-cmp-tide"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ データ読込タブ ════════════════════════════════════ -->
+<div class="tab-content" id="tab-load">
+  <div class="card">
+    <div class="card-title">解析結果ファイルを手動で読み込む</div>
+    <p style="font-size:.84rem;color:var(--text2);margin-bottom:14px;">
+      <code style="background:var(--surface2);padding:2px 7px;border-radius:4px;">analyze.bat</code> を実行して生成された
+      <code style="background:var(--surface2);padding:2px 7px;border-radius:4px;">analysis_result.json</code> を選択してください。<br>
+      <small style="color:var(--text3);">※ dashboard.html を使用する場合はこの操作は不要です。</small>
+    </p>
+    <label class="file-btn">
+      📂 analysis_result.json を選択
+      <input type="file" accept=".json" onchange="loadJsonFile(event)" style="display:none;">
+    </label>
+    <div id="load-result" style="margin-top:14px;font-size:.84rem;color:var(--text2);"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">現在のデータ</div>
+    <div id="current-data-info" style="font-size:.84rem;color:var(--text2);">—</div>
+  </div>
+</div>
+
+<div class="footer">室戸沖 釣果データ解析ソフト v2.1 ／ DB①釣果 × DB②CMEMS海流(5地点) × DB③Open-Meteo気象潮汐</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  グローバル
+// ══════════════════════════════════════════════════════════
+let G  = null;   // 読み込んだ元データ
+let GF = null;   // フィルター後プロファイル（null=全件）
+const CH = {};
+const PALETTE = ['#00b4d8','#f4a261','#2ec4b6','#e63946','#7b2d8b','#e9c46a','#457b9d','#2a9d8f'];
+
+// ══════════════════════════════════════════════════════════
+//  データ初期化
+// ══════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.ANALYSIS_DATA) {
+    initApp(window.ANALYSIS_DATA);
+  } else {
+    fetch('analysis_result.json')
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(data => initApp(data))
+      .catch(() => {
+        document.getElementById('load-status').textContent = 'データが見つかりません。「データ読込」タブからJSONを選択してください。';
+        setTimeout(() => { document.getElementById('loading-overlay').style.display = 'none'; switchTab('load'); }, 1500);
+      });
+  }
+});
+
+function loadJsonFile(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try { initApp(JSON.parse(e.target.result)); document.getElementById('load-result').innerHTML = '<span style="color:var(--green);">✅ 読み込み完了</span>'; }
+    catch { document.getElementById('load-result').innerHTML = '<span style="color:var(--red);">❌ JSONパースエラー</span>'; }
+  };
+  r.readAsText(file, 'utf-8');
+}
+
+function initApp(data) {
+  G = data; GF = null;
+  document.getElementById('loading-overlay').style.display = 'none';
+  const dbi = data.db_info || {};
+  document.getElementById('hdr-date').textContent    = data.generated_at || '—';
+  document.getElementById('hdr-records').textContent = (dbi.db1_records||0).toLocaleString();
+  document.getElementById('hdr-species').textContent = data.species_count || '—';
+  document.getElementById('hdr-db2').textContent     = (dbi.db2_records||0).toLocaleString();
+  document.getElementById('hdr-db3').textContent     = (dbi.condition_days||0) + '日';
+  document.getElementById('current-data-info').innerHTML =
+    `生成: <b>${data.generated_at}</b> ／ 釣果: <b>${dbi.db1_records}件</b> ／ DB②: <b>${dbi.db2_records}件</b> ／ DB③: <b>${dbi.condition_days}日</b>`;
+
+  initFilterPanel(data);
+  refreshSpeciesSelects(data.species_profiles || {});
+  renderTimeline();
+  renderCurrentTimeline();
+  renderMoonTimeline();
+  renderPrediction();
+  renderCurrent5();
+}
+
+// ══════════════════════════════════════════════════════════
+//  フィルターパネル
+// ══════════════════════════════════════════════════════════
+function initFilterPanel(data) {
+  const spots   = data.all_spots   || [];
+  const methods = data.all_methods || [];
+  buildCBList('cb-spots',   spots);
+  buildCBList('cb-methods', methods);
+  updateBadge(spots.length, spots.length, methods.length, methods.length, null);
+}
+
+function buildCBList(containerId, items) {
+  const el = document.getElementById(containerId); if (!el) return;
+  el.innerHTML = '';
+  items.forEach(item => {
+    const lbl = document.createElement('label');
+    lbl.className = 'cb-chip';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = true;
+    cb.value = item;
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(' ' + item));
+    el.appendChild(lbl);
+  });
+}
+
+function toggleFilter() {
+  const body  = document.getElementById('filter-body');
+  const arrow = document.getElementById('ft-arrow');
+  const open  = body.style.display === 'block';
+  body.style.display  = open ? 'none' : 'block';
+  arrow.classList.toggle('open', !open);
+}
+
+function selectAllCB(id)  { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = true); }
+function selectNoneCB(id) { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = false); }
+
+function getCheckedVals(id) {
+  return [...document.querySelectorAll(`#${id} input:checked`)].map(cb => cb.value);
+}
+
+function applyFilter() {
+  const spots   = getCheckedVals('cb-spots');
+  const methods = getCheckedVals('cb-methods');
+  if (!spots.length || !methods.length) {
+    document.getElementById('filter-status').textContent = '⚠ 釣り場・釣法を1つ以上選択してください';
+    return;
+  }
+  const allSpots   = G.all_spots   || [];
+  const allMethods = G.all_methods || [];
+  const isAll = spots.length === allSpots.length && methods.length === allMethods.length;
+
+  if (isAll) {
+    GF = null;
+    document.getElementById('active-filter-banner').style.display = 'none';
+    document.getElementById('filter-status').textContent = '✅ 全データで解析';
+    updateBadge(spots.length, allSpots.length, methods.length, allMethods.length, null);
+  } else {
+    const recs = (G.records || []).filter(r => spots.includes(r.spot) && methods.includes(r.method));
+    const spSet = [...new Set(recs.map(r => r.species))].filter(Boolean);
+    const profiles = {};
+    spSet.forEach(sp => { const p = buildProfileJS(sp, recs); if (p) profiles[sp] = p; });
+    GF = { profiles, filteredRecords: recs, spots, methods };
+    const banner = document.getElementById('active-filter-banner');
+    banner.style.display = 'block';
+    document.getElementById('banner-text').textContent =
+      `釣り場${spots.length}件 × 釣法${methods.length}件 → ${recs.length}レコード / ${Object.keys(profiles).length}魚種`;
+    document.getElementById('filter-status').textContent =
+      `✅ ${recs.length}件・${Object.keys(profiles).length}魚種で解析`;
+    updateBadge(spots.length, allSpots.length, methods.length, allMethods.length, recs.length);
+  }
+
+  // パネルを閉じる
+  document.getElementById('filter-body').style.display = 'none';
+  document.getElementById('ft-arrow').classList.remove('open');
+
+  refreshSpeciesSelects(GF ? GF.profiles : G.species_profiles || {});
+  const sel = document.getElementById('species-select');
+  if (sel.value) loadSpeciesProfile();
+}
+
+function resetFilter() {
+  GF = null;
+  selectAllCB('cb-spots'); selectAllCB('cb-methods');
+  document.getElementById('active-filter-banner').style.display = 'none';
+  document.getElementById('filter-status').textContent = '↺ リセットしました';
+  const allSpots   = G.all_spots   || [];
+  const allMethods = G.all_methods || [];
+  updateBadge(allSpots.length, allSpots.length, allMethods.length, allMethods.length, null);
+  refreshSpeciesSelects(G.species_profiles || {});
+  const sel = document.getElementById('species-select');
+  if (sel.value) loadSpeciesProfile();
+}
+
+function updateBadge(nSpots, totalSpots, nMethods, totalMethods, recCount) {
+  const bsEl = document.getElementById('badge-spots');
+  const bmEl = document.getElementById('badge-methods');
+  const brEl = document.getElementById('badge-records');
+  const allSp = nSpots  === totalSpots;
+  const allMt = nMethods === totalMethods;
+  bsEl.textContent = allSp ? '釣り場: すべて' : `釣り場: ${nSpots}/${totalSpots}`;
+  bmEl.textContent = allMt ? '釣法: すべて'   : `釣法: ${nMethods}/${totalMethods}`;
+  bsEl.classList.toggle('active', !allSp);
+  bmEl.classList.toggle('active', !allMt);
+  if (recCount !== null) {
+    brEl.style.display = 'inline'; brEl.textContent = `→ ${recCount}件`;
+    brEl.classList.add('active');
+  } else { brEl.style.display = 'none'; }
+}
+
+function refreshSpeciesSelects(profiles) {
+  const spList = Object.keys(profiles).sort((a,b)=>(profiles[b].catch_days||0)-(profiles[a].catch_days||0));
+  ['species-select','tl-species','ctl-species','mtl-species','cmp-a','cmp-b'].forEach(id => {
+    const sel = document.getElementById(id); if (!sel) return;
+    const prev = sel.value;
+    const isTimeline = ['tl-species','ctl-species','mtl-species'].includes(id);
+    sel.innerHTML = isTimeline ? '<option value="">（全魚種）</option>' : '<option value="">-- 選択 --</option>';
+    spList.forEach(sp => {
+      const o = document.createElement('option');
+      o.value = sp; o.textContent = `${sp}（${profiles[sp].catch_days}日）`;
+      sel.appendChild(o);
+    });
+    if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+  });
+  const predSel = document.getElementById('pred-species');
+  if (predSel) {
+    const prev = [...predSel.selectedOptions].map(o=>o.value);
+    const defs = ['カンパチ','マハタ','イシナギ','ブリ','マダイ','クエ'];
+    predSel.innerHTML = '';
+    spList.forEach(sp => {
+      const o = document.createElement('option');
+      o.value = sp; o.textContent = sp;
+      o.selected = prev.includes(sp) || (!prev.length && defs.includes(sp));
+      predSel.appendChild(o);
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  JS側プロファイル計算（フィルター後用）
+// ══════════════════════════════════════════════════════════
+const sf = v => { const n=parseFloat(v); return isNaN(n)?null:n; };
+function jStats(vals) {
+  const v = vals.filter(x=>x!=null);
+  if (!v.length) return {n:0};
+  v.sort((a,b)=>a-b);
+  const n=v.length, sum=v.reduce((a,b)=>a+b,0), m=sum/n;
+  const med = n%2?v[Math.floor(n/2)]:(v[n/2-1]+v[n/2])/2;
+  const sd  = Math.sqrt(v.reduce((a,b)=>a+(b-m)**2,0)/n);
+  const pct = p => { const i=(n-1)*p/100, lo=Math.floor(i); return lo+1<n?v[lo]*(lo+1-i)+v[lo+1]*(i-lo):v[lo]; };
+  return {n, mean:+m.toFixed(2), median:+med.toFixed(2), std:+sd.toFixed(2),
+          min:+v[0].toFixed(2), max:+v[n-1].toFixed(2), p25:+pct(25).toFixed(2), p75:+pct(75).toFixed(2)};
+}
+function jFreq(vals) {
+  const tot = vals.filter(Boolean).length; if(!tot) return {};
+  const cnt = {}; vals.filter(Boolean).forEach(v=>{cnt[v]=(cnt[v]||0)+1;});
+  return Object.fromEntries(Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,+(v/tot*100).toFixed(1)]));
+}
+const d2c8 = deg => ['N','NE','E','SE','S','SW','W','NW'][Math.floor(((+deg||0)+22.5)/45)%8];
+
+function buildProfileJS(sp, recs, areaKey='室戸沖') {
+  const rows = recs.filter(r => r.species === sp);
+  if (rows.length < 1) return null;
+  const dates = [...new Set(rows.map(r=>r.date))].sort();
+  // 使用するカラム（海域選択に対応）
+  const ac = AREA_COLS?.[areaKey] || { speed:'室戸沖_流速kn', dir:'室戸沖_流向', temp:'室戸沖_水温', salt:'室戸沖_塩分' };
+  const NCOLS = ['室戸沖_流速kn','室戸沖_流向','室戸沖_水温','室戸沖_塩分',
+                 '北西_流速kn','北西_流向','北西_水温','北西_塩分',
+                 '気温_平均','風速_最大','最大波高','波周期','水温(Open-Meteo)','月齢'];
+  const ns = {};
+  NCOLS.forEach(c => { ns[c] = jStats(rows.map(r=>sf(r[c]))); });
+  // 水温帯（選択海域の水温を使用）
+  const wtBins = {};
+  rows.forEach(r => { const v=sf(r[ac.temp])??sf(r['水温(Open-Meteo)']); if(v!=null){const lo=Math.floor(v/2)*2; const k=`${lo}〜${lo+2}℃`; wtBins[k]=(wtBins[k]||0)+1;}});
+  // 流速帯（選択海域の流速を使用）
+  const csBins = {};
+  rows.forEach(r => { const v=sf(r[ac.speed]); if(v!=null){const k=v<0.3?'弱(0〜0.3kn)':v<0.6?'中(0.3〜0.6kn)':v<1.0?'強(0.6〜1.0kn)':'激流(1.0kn+)'; csBins[k]=(csBins[k]||0)+1;}});
+  // 流向（選択海域の流向を使用）
+  const dirB = {}; rows.forEach(r=>{const v=sf(r[ac.dir]); if(v!=null){const c=d2c8(v);dirB[c]=(dirB[c]||0)+1;}});
+  const tot8=Object.values(dirB).reduce((a,b)=>a+b,0)||1;
+  const dirD = Object.fromEntries(Object.entries(dirB).map(([k,v])=>[k,+(v/tot8*100).toFixed(1)]));
+  // 月別
+  const mCnt = {}; rows.forEach(r=>{const m=new Date(r.date).getMonth()+1; mCnt[m]=(mCnt[m]||0)+(+r.count||1);});
+  const monthDist = {}; for(let m=1;m<=12;m++) monthDist[String(m)]=mCnt[m]||0;
+  return {
+    species:sp, total_records:rows.length, catch_days:dates.length,
+    catch_date_range:{first:dates[0], last:dates[dates.length-1]},
+    numeric_stats:ns,
+    tide_dist:    jFreq(rows.map(r=>r['潮汐'])),
+    weather_dist: jFreq(rows.map(r=>r['天気'])),
+    moon_dist:    jFreq(rows.map(r=>r['月相'])),
+    method_dist:  jFreq(rows.map(r=>r.method)),
+    month_dist:   monthDist,
+    water_temp_bins:    Object.fromEntries(Object.entries(wtBins).sort()),
+    current_speed_bins: csBins,
+    current_dir_dist:   dirD,
+    water_temp_trend_dist: jFreq(rows.map(r=>r['_wt_trend'])),
+    db2_5point_profiles: G?.species_profiles?.[sp]?.db2_5point_profiles || {},
+    _filtered: true,
+  };
+}
+
+// ══════════════════════════════════════════════════════════
+//  タブ切替
+// ══════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.classList.toggle('active', b.getAttribute('onclick').includes("'"+name+"'")));
+  document.querySelectorAll('.tab-content').forEach(el =>
+    el.classList.toggle('active', el.id === 'tab-'+name));
+}
+
+// ══════════════════════════════════════════════════════════
+//  チャートヘルパー
+// ══════════════════════════════════════════════════════════
+function kc(id) { if(CH[id]){CH[id].destroy();delete CH[id];} }
+
+function barChart(id,labels,datasets,opts={}) {
+  kc(id); const ctx=document.getElementById(id); if(!ctx) return;
+  CH[id]=new Chart(ctx,{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{color:'#94a8bc',font:{size:10}},display:datasets.length>1}},
+    scales:{x:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'}},
+            y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},beginAtZero:true,...(opts.y||{})}},
+    ...(opts.extra||{})}});
+}
+function doughnutChart(id,labels,values,colors) {
+  kc(id); const ctx=document.getElementById(id); if(!ctx) return;
+  CH[id]=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data:values,
+    backgroundColor:colors||PALETTE.slice(0,labels.length),borderWidth:1,borderColor:'#0d1b2a'}]},
+    options:{responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{position:'right',labels:{color:'#94a8bc',font:{size:9},boxWidth:10}}}}});
+}
+function lineChart(id,labels,datasets,opts={}) {
+  kc(id); const ctx=document.getElementById(id); if(!ctx) return;
+  CH[id]=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#94a8bc',font:{size:10}}}},
+    scales:{x:{ticks:{color:'#94a8bc',font:{size:8},maxTicksLimit:opts.maxTicks||20},grid:{color:'#1e3550'}},
+            y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},...(opts.y||{})},
+            ...(opts.y2?{y2:{type:'linear',position:'right',ticks:{color:'#f4a261',font:{size:9}},
+                         grid:{drawOnChartArea:false},...opts.y2}}:{})},
+    ...(opts.extra||{})}});
+}
+
+// ══════════════════════════════════════════════════════════
+//  海域別カラムマッピング
+// ══════════════════════════════════════════════════════════
+const AREA_COLS = {
+  '室戸沖': { speed:'室戸沖_流速kn', dir:'室戸沖_流向', temp:'室戸沖_水温', salt:'室戸沖_塩分' },
+  '北西':   { speed:'北西_流速kn',   dir:'北西_流向',   temp:'北西_水温',   salt:'北西_塩分'   },
+  // 西/東/北東 → DB②サマリーのみ（per-record列なし）
+};
+
+// ══════════════════════════════════════════════════════════
+//  レーダーチャート
+// ══════════════════════════════════════════════════════════
+function radarChart(id, labels, datasets, opts={}) {
+  kc(id); const ctx=document.getElementById(id); if(!ctx) return;
+  CH[id]=new Chart(ctx,{type:'radar',data:{labels,datasets},options:{
+    responsive:true, maintainAspectRatio:true,
+    scales:{r:{beginAtZero:true,
+      ticks:{color:'#94a8bc',font:{size:8},backdropColor:'transparent',stepSize:opts.step||10},
+      grid:{color:'#2a4060'},
+      pointLabels:{color:'#e0e7ef',font:{size:11,weight:'bold'}},
+      angleLines:{color:'#2a4060'},
+    }},
+    plugins:{legend:{labels:{color:'#94a8bc',font:{size:10}},display:datasets.length>1}},
+    ...(opts.extra||{})
+  }});
+}
+
+// ══════════════════════════════════════════════════════════
+//  エリア対応プロファイル取得（per-record列使用）
+// ══════════════════════════════════════════════════════════
+function getProfileForArea(sp, areaKey) {
+  const profiles = GF ? GF.profiles : G.species_profiles;
+  const baseProfile = profiles[sp];
+  if (!baseProfile) return null;
+
+  // 室戸沖以外かつAREA_COLSに定義があれば再計算
+  if (areaKey !== '室戸沖' && AREA_COLS[areaKey]) {
+    const recs = GF ? GF.filteredRecords : (G.records||[]);
+    const recomputed = buildProfileJS(sp, recs, areaKey);
+    if (recomputed) return recomputed;
+  }
+  return baseProfile;
+}
+
+// ══════════════════════════════════════════════════════════
+//  魚種プロファイル（複数魚種・複数海域対応）
+// ══════════════════════════════════════════════════════════
+function loadSpeciesProfile() {
+  const spSel   = document.getElementById('species-select');
+  const areaSel = document.getElementById('area-select');
+  const spList  = [...(spSel?.selectedOptions||[])].map(o=>o.value).filter(Boolean);
+  const areas   = [...(areaSel?.selectedOptions||[])].map(o=>o.value);
+  const primaryArea = areas[0] || '室戸沖';
+
+  const hasSelection = spList.length > 0 && G;
+  document.getElementById('ov-content').style.display = hasSelection ? 'block' : 'none';
+  document.getElementById('ov-empty').style.display   = hasSelection ? 'none'  : 'block';
+  if (!hasSelection) { document.getElementById('ov-empty').innerHTML='↑ 上の選択肢から魚種を選んでください'; return; }
+
+  // 各魚種のプロファイルを取得
+  const items = spList.map((sp,i)=>({ sp, color:PALETTE[i%PALETTE.length], p:getProfileForArea(sp, primaryArea) })).filter(x=>x.p);
+  if (!items.length) {
+    document.getElementById('ov-content').style.display='none';
+    document.getElementById('ov-empty').style.display='block';
+    document.getElementById('ov-empty').innerHTML='<span style="color:var(--text3);">選択した魚種のデータがありません</span>';
+    return;
+  }
+
+  // フィルター中バッジ
+  const note = document.getElementById('filter-note');
+  if (GF) {
+    const total = items.reduce((s,x)=>s+x.p.total_records,0);
+    note.style.display='inline';
+    note.innerHTML=`<span style="background:rgba(244,162,97,.18);color:#f4a261;padding:2px 8px;border-radius:8px;">フィルター適用中 ${total}件</span>`;
+  } else { note.style.display='none'; }
+
+  // ── サマリー（1魚種：カード、複数：比較テーブル）
+  if (items.length === 1) {
+    const {p} = items[0];
+    const ns=p.numeric_stats||{};
+    const ac = AREA_COLS[primaryArea] || AREA_COLS['室戸沖'];
+    const wt  = ns[ac.temp] || ns['水温(Open-Meteo)'] || {};
+    const cs  = ns[ac.speed] || {};
+    const wv  = ns['最大波高'] || {};
+    const mn  = ns['月齢'] || {};
+    const bestM = Object.entries(p.month_dist||{}).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+    document.getElementById('summary-cards').innerHTML=`
+      <div class="sc"><div class="sl">釣果日数</div><div class="sv">${p.catch_days}</div><div class="ss">記録: ${p.total_records}件</div></div>
+      <div class="sc"><div class="sl">最多釣果月</div><div class="sv">${bestM}月</div></div>
+      <div class="sc"><div class="sl">理想水温 中央値(${primaryArea})</div><div class="sv">${wt.median??'—'}℃</div><div class="ss">P25〜P75: ${wt.p25??'—'}〜${wt.p75??'—'}℃</div></div>
+      <div class="sc"><div class="sl">平均流速(${primaryArea})</div><div class="sv">${cs.mean??'—'}<small>kn</small></div><div class="ss">P25〜P75: ${cs.p25??'—'}〜${cs.p75??'—'}kn</div></div>
+      <div class="sc"><div class="sl">平均波高</div><div class="sv">${wv.mean??'—'}<small>m</small></div></div>
+      <div class="sc"><div class="sl">平均月齢</div><div class="sv">${mn.mean??'—'}</div></div>`;
+  } else {
+    // 複数魚種：比較テーブル
+    const ac = AREA_COLS[primaryArea] || AREA_COLS['室戸沖'];
+    let tbl=`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+      <thead><tr style="background:var(--accent2);color:#fff;">
+        <th style="padding:7px 10px;">指標</th>${items.map(x=>`<th style="padding:7px 10px;color:${x.color};">${x.sp}</th>`).join('')}
+      </tr></thead><tbody>`;
+    const ROWS=[
+      ['釣果日数',      x=>x.p.catch_days+'日'],
+      ['釣果記録',      x=>x.p.total_records+'件'],
+      ['最多釣果月',    x=>{ const e=Object.entries(x.p.month_dist||{}).sort((a,b)=>b[1]-a[1]); return e[0]?e[0][0]+'月':'—'; }],
+      ['水温 中央値',   x=>(x.p.numeric_stats?.[ac.temp]||x.p.numeric_stats?.['水温(Open-Meteo)']||{}).median??'—'],
+      ['水温 P25〜P75', x=>{ const ns=(x.p.numeric_stats?.[ac.temp]||x.p.numeric_stats?.['水温(Open-Meteo)']||{}); return `${ns.p25??'—'}〜${ns.p75??'—'}℃`; }],
+      ['流速 平均',     x=>(x.p.numeric_stats?.[ac.speed]||{}).mean??'—'],
+      ['最大波高 平均', x=>(x.p.numeric_stats?.['最大波高']||{}).mean??'—'],
+    ];
+    ROWS.forEach(([label,fn])=>{
+      tbl+=`<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:6px 10px;color:var(--text3);font-size:.78rem;">${label}</td>
+        ${items.map(x=>`<td style="padding:6px 10px;">${fn(x)}</td>`).join('')}</tr>`;
+    });
+    tbl+='</tbody></table></div>';
+    document.getElementById('summary-cards').innerHTML=tbl;
+  }
+
+  // ── チャート共通データ生成 ──
+  const ms=['1','2','3','4','5','6','7','8','9','10','11','12'];
+  const csO_all=['弱(0〜0.3kn)','中(0.3〜0.6kn)','強(0.6〜1.0kn)','激流(1.0kn+)'];
+  const tO_all=['大潮','中潮','小潮','長潮','若潮'];
+  const trO_all=['急上昇','上昇','安定','下降','急下降'];
+  const trC={急上昇:'rgba(230,57,70,.8)',上昇:'rgba(46,196,182,.8)',安定:'rgba(100,160,200,.7)',下降:'rgba(130,100,200,.7)',急下降:'rgba(123,45,139,.8)'};
+  const C8=['N','NE','E','SE','S','SW','W','NW'];
+  const alpha = c => c+'bb'; // 複数時は少し透明
+
+  // ── 水温帯チャート
+  const allWtBins=[...new Set(items.flatMap(x=>Object.keys(x.p.water_temp_bins||{})))].sort();
+  barChart('c-wt-bins',allWtBins, items.map(x=>({
+    label:x.sp, data:allWtBins.map(k=>(x.p.water_temp_bins||{})[k]||0),
+    backgroundColor:alpha(x.color), borderColor:x.color, borderWidth:1,
+  })));
+
+  // ── 月別チャート
+  barChart('c-month',ms.map(m=>m+'月'), items.map(x=>({
+    label:x.sp, data:ms.map(m=>(x.p.month_dist||{})[m]||0),
+    backgroundColor:alpha(x.color), borderColor:x.color, borderWidth:1,
+  })));
+
+  // ── 流速帯チャート（選択海域を反映したラベル）
+  const ac = AREA_COLS[primaryArea] || AREA_COLS['室戸沖'];
+  const csO=csO_all.filter(k=>items.some(x=>(x.p.current_speed_bins||{})[k]));
+  barChart('c-cs-bins',csO, items.map((x,i)=>({
+    label:x.sp, data:csO.map(k=>(x.p.current_speed_bins||{})[k]||0),
+    backgroundColor:alpha(x.color), borderColor:x.color, borderWidth:1,
+  })));
+
+  // ── 潮汐チャート
+  const tO=tO_all.filter(k=>items.some(x=>(x.p.tide_dist||{})[k]));
+  barChart('c-tide',tO, items.map(x=>({
+    label:x.sp, data:tO.map(k=>(x.p.tide_dist||{})[k]||0),
+    backgroundColor:alpha(x.color), borderColor:x.color, borderWidth:1,
+  })), {y:{title:{display:true,text:'%',color:'#94a8bc'}}});
+
+  // ── 水温トレンドチャート
+  const trO=trO_all.filter(k=>items.some(x=>(x.p.water_temp_trend_dist||{})[k]));
+  if (items.length===1) {
+    barChart('c-wt-trend',trO,[{label:'%',data:trO.map(k=>(items[0].p.water_temp_trend_dist||{})[k]||0),
+      backgroundColor:trO.map(k=>trC[k]),borderWidth:1}],{y:{title:{display:true,text:'%',color:'#94a8bc'}}});
+  } else {
+    barChart('c-wt-trend',trO, items.map(x=>({
+      label:x.sp, data:trO.map(k=>(x.p.water_temp_trend_dist||{})[k]||0),
+      backgroundColor:alpha(x.color), borderColor:x.color, borderWidth:1,
+    })), {y:{title:{display:true,text:'%',color:'#94a8bc'}}});
+  }
+
+  // ── 方向別チャート（棒グラフ）
+  barChart('c-dir',C8, items.map(x=>({
+    label:x.sp, data:C8.map(k=>(x.p.current_dir_dist||{})[k]||0),
+    backgroundColor:alpha(x.color), borderColor:x.color, borderWidth:1,
+  })), {y:{title:{display:true,text:'%',color:'#94a8bc'}}});
+
+  // ── 方向別チャート（レーダー）
+  const areaLabel = areas.join('・');
+  const areaLabelEl = document.getElementById('dir-area-label');
+  if (areaLabelEl) areaLabelEl.textContent = `（${areaLabel}）`;
+  // レーダーデータ：方向分布の%を使用
+  const maxDirVal = Math.max(10, ...items.flatMap(x=>C8.map(k=>(x.p.current_dir_dist||{})[k]||0)));
+  const step = maxDirVal > 40 ? 20 : maxDirVal > 20 ? 10 : 5;
+  radarChart('c-dir-radar', C8, items.map(x=>({
+    label:x.sp,
+    data:C8.map(k=>(x.p.current_dir_dist||{})[k]||0),
+    borderColor:x.color, backgroundColor:x.color+'33',
+    borderWidth:2, pointBackgroundColor:x.color, pointRadius:3,
+  })), {step});
+
+  // ── DB② 5地点
+  const db2p=(items[0].p.db2_5point_profiles||{});
+  const pts5=['北西','室戸沖','西','東','北東'];
+  const selPts = areas.filter(a=>pts5.includes(a));
+  let ptHtml='';
+  pts5.forEach(pt=>{
+    const pp=db2p[pt];
+    const highlighted = selPts.includes(pt);
+    ptHtml+=`<div class="pt-card" style="${highlighted?'border-color:var(--accent);background:rgba(0,180,216,.1);':''}">
+      <div class="pt-name">${pt}${highlighted?' ✓':''}</div>
+      <div class="pt-val">${pp?.['流速stats']?.mean??'—'}<small>kn</small></div>
+      <div class="pt-sub">水温: ${pp?.['水温stats']?.mean??'—'}℃</div></div>`;
+  });
+  document.getElementById('pt-cards').innerHTML=ptHtml;
+  barChart('c-pt-speed',pts5,[{label:'平均流速(kn)',data:pts5.map(pt=>db2p[pt]?.['流速stats']?.mean||0),
+    backgroundColor:pts5.map(pt=>selPts.includes(pt)?'rgba(0,180,216,.9)':'rgba(0,180,216,.4)'),borderColor:'#00b4d8',borderWidth:1}]);
+  barChart('c-pt-temp', pts5,[{label:'平均水温(℃)',data:pts5.map(pt=>db2p[pt]?.['水温stats']?.mean||0),
+    backgroundColor:pts5.map(pt=>selPts.includes(pt)?'rgba(244,162,97,.9)':'rgba(244,162,97,.4)'),borderColor:'#f4a261',borderWidth:1}]);
+
+  // ── ベースライン比較テーブル（1魚種のみ）
+  if (items.length === 1) {
+    const ns=items[0].p.numeric_stats||{};
+    const bl=G.baseline||{};
+    const DISP=[
+      [ac.temp,`${primaryArea}水温 ℃`],[ac.speed,`${primaryArea}流速 kn`],
+      ['北西_水温','北西水温 ℃'],['最大波高','最大波高 m'],
+      ['波周期','波周期 s'],['風速_最大','最大風速 m/s'],['月齢','月齢'],['降水量','降水量 mm']];
+    let tbody='';
+    DISP.forEach(([col,label])=>{
+      const ps=ns[col]||{}; const bs=bl[col]||{};
+      if (!ps.mean&&!bs.mean) return;
+      const d=ps.mean!=null&&bs.mean!=null?ps.mean-bs.mean:null;
+      const ds=d!=null?`<span class="${d>0.1?'diff-pos':d<-0.1?'diff-neg':''}">${d>0?'+':''}${d.toFixed(2)}</span>`:'—';
+      tbody+=`<tr><td>${label}</td><td>${ps.mean??'—'}</td><td>${bs.mean??'—'}</td><td>${ds}</td><td>${ps.median??'—'}</td><td>${ps.p25??'—'} 〜 ${ps.p75??'—'}</td></tr>`;
+    });
+    document.getElementById('profile-tbody').innerHTML=tbody;
+    // カテゴリ（1魚種）
+    let catHtml='';
+    const p0=items[0].p;
+    [['釣り方',p0.method_dist],['天気',p0.weather_dist],['月相',p0.moon_dist]].forEach(([title,dist])=>{
+      if(!dist||!Object.keys(dist).length) return;
+      catHtml+=`<div><div style="font-size:.76rem;color:var(--text3);margin-bottom:6px;font-weight:700;">${title}</div>`;
+      Object.entries(dist).slice(0,6).forEach(([k,v])=>{
+        catHtml+=`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);font-size:.8rem;"><span>${k||'不明'}</span><span style="color:var(--accent);">${v}%</span></div>`;
+      });
+      catHtml+='</div>';
+    });
+    document.getElementById('cat-stats').innerHTML=catHtml;
+  } else {
+    // 複数魚種：ベースライン比較テーブル・カテゴリは非表示
+    document.getElementById('profile-tbody').innerHTML=
+      `<tr><td colspan="6" style="color:var(--text3);font-size:.8rem;padding:12px;">複数魚種選択中は比較テーブルは最初の魚種のみ表示します</td></tr>`;
+    document.getElementById('cat-stats').innerHTML='';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  釣れ予測
+// ══════════════════════════════════════════════════════════
+function renderPrediction() {
+  if (!G) return;
+  const sel = document.getElementById('pred-species');
+  const sps = [...sel.selectedOptions].map(o=>o.value);
+  if (!sps.length) return;
+  const preds = G.predictions||{};
+  const dates = Object.keys(preds).sort();
+
+  document.getElementById('pred-thead').innerHTML =
+    `<tr><th>日付</th><th>水温</th><th>水温ﾄﾚﾝﾄﾞ</th><th>潮汐</th><th>流速</th>${sps.map(s=>`<th>${s}</th>`).join('')}</tr>`;
+
+  const rows = dates.map(d=>{
+    const day=preds[d]; const base=day[sps[0]]||{};
+    return {date:d,水温:base['水温']??'—',潮汐:base['潮汐']??'—',流速:base['流速kn']??'—',
+      trend:base['水温トレンド']??'—', scores:sps.map(s=>(day[s]||{}).score||0),
+      maxScore:Math.max(...sps.map(s=>(day[s]||{}).score||0))};
+  }).sort((a,b)=>b.maxScore-a.maxScore);
+
+  let tbody='';
+  rows.forEach(row=>{
+    const hi=row.maxScore>=50;
+    tbody+=`<tr class="${hi?'pred-row-high':''}"><td><b>${row.date}</b>${hi?' ⭐':''}</td>
+      <td>${row.水温!=='—'?row.水温+'℃':'—'}</td><td>${trendBadge(row.trend)}</td>
+      <td>${row.潮汐}</td><td>${row.流速!=='—'?row.流速+'kn':'—'}</td>`;
+    row.scores.forEach(sc=>{const w=Math.min(70,sc*1.1); const col=sc>=60?'#00c850':sc>=40?'#f4a261':'#94a8bc';
+      tbody+=`<td>${sc}<span class="score-bar" style="width:${w}px;background:${col};"></span></td>`;});
+    tbody+='</tr>';
+  });
+  document.getElementById('pred-tbody').innerHTML=tbody;
+
+  lineChart('c-pred-trend',dates,sps.map((sp,i)=>({label:sp,data:dates.map(d=>(preds[d][sp]||{}).score||0),
+    borderColor:PALETTE[i%PALETTE.length],backgroundColor:PALETTE[i%PALETTE.length]+'22',tension:0.3,fill:true,pointRadius:2})),
+    {extra:{maintainAspectRatio:true},y:{title:{display:true,text:'予測スコア',color:'#94a8bc'},beginAtZero:true}});
+}
+function trendBadge(t){const m={急上昇:'badge-up',上昇:'badge-up',安定:'badge-stable',下降:'badge-down',急下降:'badge-down'}; const c=m[t]||''; return c?`<span class="badge ${c}">${t}</span>`:(t||'—');}
+
+// ══════════════════════════════════════════════════════════
+//  共通：⭐絵文字画像 & 大物マーカー生成
+// ══════════════════════════════════════════════════════════
+let _starImg = null;
+function getStarImg(size=22) {
+  if (_starImg) return _starImg;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.font = `${Math.round(size*0.88)}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('⭐', size/2, size/2 + 1);
+  _starImg = c;
+  return c;
+}
+
+// 大物判定：魚種別上位20%（大物魚種リストに spF が含まれるか）
+function isBigCatch(r, spF) {
+  const bigSp = r['大物魚種'] || [];
+  if (!bigSp.length) return false;
+  return !spF || bigSp.includes(spF);
+}
+
+function buildCatchDatasets(fil, spF, yKey) {
+  const catchSet = new Set(
+    fil.filter(r=>r.釣果?.length && (!spF || r.釣果.includes(spF))).map(r=>r.date)
+  );
+  // 日付 → timeseries行 のマップ
+  const dateMap = Object.fromEntries(fil.map(r=>[r.date,r]));
+  const normalData = fil.map(r => catchSet.has(r.date) && !isBigCatch(r,spF) ? r[yKey] : null);
+  const bigData    = fil.map(r => catchSet.has(r.date) &&  isBigCatch(r,spF) ? r[yKey] : null);
+  return [
+    { label:'通常釣果', data:normalData,
+      type:'scatter', pointStyle:'circle', pointRadius:5,
+      backgroundColor:'#e63946', borderColor:'#fff', borderWidth:1 },
+    { label:'⭐大物（魚種別上位20%）', data:bigData,
+      type:'scatter',
+      pointStyle: getStarImg(), pointRadius:11,
+      backgroundColor:'rgba(0,0,0,0)', borderColor:'rgba(0,0,0,0)', borderWidth:0 },
+  ];
+}
+
+// ══════════════════════════════════════════════════════════
+//  矢印描画ヘルパー（流向 → canvas画像）
+// ══════════════════════════════════════════════════════════
+function makeArrowImg(dirDeg, color='#f4a261', size=16) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const cx = size/2, cy = size/2, len = size*0.4, hw = size*0.18;
+  const rad = (dirDeg - 90) * Math.PI / 180;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rad);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.5;
+  // 軸
+  ctx.beginPath(); ctx.moveTo(0, len); ctx.lineTo(0, -len+hw*1.5); ctx.stroke();
+  // 矢じり
+  ctx.beginPath(); ctx.moveTo(0, -len); ctx.lineTo(-hw, -len+hw*2); ctx.lineTo(hw, -len+hw*2); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  return c;
+}
+
+// ══════════════════════════════════════════════════════════
+//  水温タイムライン
+// ══════════════════════════════════════════════════════════
+function renderTimeline() {
+  if (!G) return;
+  const range  = parseInt(document.getElementById('tl-range').value);
+  const spF    = document.getElementById('tl-species').value;
+  const showCs = document.getElementById('tl-show-current').checked;
+  const ts     = G.temp_timeseries||[];
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-range);
+  const fil    = ts.filter(r=>new Date(r.date)>=cutoff);
+  const labels = fil.map(r=>r.date);
+  const temps  = fil.map(r=>r['水温']);
+  const ma7s   = fil.map(r=>r['水温7日MA']);
+  const speeds = fil.map(r=>r['流速kn']);
+
+  const datasets=[
+    {label:'水温℃',data:temps,borderColor:'#00b4d8',backgroundColor:'rgba(0,180,216,.1)',tension:0.3,fill:true,pointRadius:0,borderWidth:1.5},
+    {label:'7日MA',data:ma7s,borderColor:'#f4a261',borderDash:[4,3],tension:0.3,fill:false,pointRadius:0,borderWidth:1.5},
+    ...buildCatchDatasets(fil, spF, '水温'),
+  ];
+  if(showCs) datasets.push({label:'流速kn',data:speeds,borderColor:'#7b2d8b',borderDash:[2,2],tension:0.3,fill:false,pointRadius:0,borderWidth:1,yAxisID:'y2'});
+
+  kc('c-timeline');
+  const ctx=document.getElementById('c-timeline'); if(!ctx) return;
+  CH['c-timeline']=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#94a8bc',font:{size:10}}},
+      tooltip:{callbacks:{afterLabel:ci=>{
+        const r=fil[ci.dataIndex];
+        const big = isBigCatch(r, spF) && (r.釣果||[]).some(s=>!spF||s===spF) ? ' ⭐大物!' : '';
+        return r?.釣果?.length?'🎣 '+r.釣果.join(' / ')+big:'';
+      }}}},
+    scales:{x:{ticks:{color:'#94a8bc',font:{size:8},maxTicksLimit:20},grid:{color:'#1e3550'}},
+      y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},title:{display:true,text:'水温℃',color:'#94a8bc'}},
+      ...(showCs?{y2:{type:'linear',position:'right',ticks:{color:'#7b2d8b',font:{size:9}},grid:{drawOnChartArea:false},title:{display:true,text:'流速kn',color:'#7b2d8b'}}}:{})}}});
+
+  // トレンドカレンダー
+  const grp={急上昇:[],上昇:[],安定:[],下降:[],急下降:[]};
+  fil.forEach(r=>{const t=r['水温トレンド'];if(grp[t]&&r.釣果?.length)grp[t].push(`${r.date}(${r['水温']}℃)${(r['大物魚種']||[]).length?'⭐':''}: ${r.釣果.join('/')}`);});
+  const cols={急上昇:'#e63946',上昇:'#2ec4b6',安定:'#7ab0d4',下降:'#7b2d8b',急下降:'#f4a261'};
+  let cal='';
+  Object.entries(grp).forEach(([t,items])=>{
+    if(!items.length) return;
+    cal+=`<div style="margin-bottom:10px;"><b style="color:${cols[t]};">【${t}期】${items.length}日</b><div style="margin-top:4px;">`;
+    cal+=items.slice(-8).map(s=>`<div style="padding:2px 0;border-bottom:1px solid var(--border);font-size:.78rem;">${s}</div>`).join('');
+    if(items.length>8) cal+=`<div style="color:var(--text3);font-size:.72rem;">…他${items.length-8}件</div>`;
+    cal+='</div></div>';
+  });
+  document.getElementById('trend-calendar').innerHTML=cal||'データなし';
+}
+
+// ══════════════════════════════════════════════════════════
+//  流速・流向タイムライン
+// ══════════════════════════════════════════════════════════
+function renderCurrentTimeline() {
+  if (!G) return;
+  const range     = parseInt(document.getElementById('ctl-range').value);
+  const spF       = document.getElementById('ctl-species').value;
+  const arrowStep = parseInt(document.getElementById('ctl-arrow-step').value);
+  const ts        = G.temp_timeseries||[];
+  const cutoff    = new Date(); cutoff.setDate(cutoff.getDate()-range);
+  const fil       = ts.filter(r=>new Date(r.date)>=cutoff);
+  const labels    = fil.map(r=>r.date);
+  const speeds    = fil.map(r=>r['流速kn']);
+  const ma7s      = fil.map(r=>r['流速7日MA']);
+  const dirs      = fil.map(r=>r['流向']);
+
+  // 矢印データセット（arrowStep日ごとに表示）
+  const arrowData = fil.map((r,i)=>{
+    if (i % arrowStep !== 0 || r['流向']==null || r['流速kn']==null) return null;
+    return r['流速kn'];
+  });
+  const arrowImgs = fil.map((r,i)=>{
+    if (i % arrowStep !== 0 || r['流向']==null) return 'circle';
+    return makeArrowImg(r['流向']);
+  });
+
+  const datasets = [
+    {label:'流速kn', data:speeds, borderColor:'#00b4d8', backgroundColor:'rgba(0,180,216,.1)', tension:0.3, fill:true, pointRadius:0, borderWidth:1.5},
+    {label:'7日MA',  data:ma7s,  borderColor:'#2ec4b6', borderDash:[4,3], tension:0.3, fill:false, pointRadius:0, borderWidth:1.5},
+    {label:'流向矢印', data:arrowData, type:'scatter',
+      pointStyle:arrowImgs, pointRadius:8,
+      backgroundColor:'rgba(0,0,0,0)', borderColor:'rgba(0,0,0,0)', borderWidth:0},
+    ...buildCatchDatasets(fil, spF, '流速kn'),
+  ];
+
+  kc('c-current-tl');
+  const ctx = document.getElementById('c-current-tl'); if(!ctx) return;
+  CH['c-current-tl'] = new Chart(ctx, {type:'line', data:{labels,datasets}, options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#94a8bc',font:{size:10}}},
+      tooltip:{callbacks:{
+        afterLabel: ci => {
+          const r=fil[ci.dataIndex];
+          const d=r?.['流向'];
+          const C8=['N','NE','E','SE','S','SW','W','NW'];
+          const dStr = d!=null ? `流向: ${C8[Math.round(((d+22.5)/45))%8]}(${Math.round(d)}°)` : '';
+          const f = r?.釣果?.length ? '🎣 '+r.釣果.join('/')+(isBigCatch(r,spF)?' ⭐大物!':'') : '';
+          return [dStr,f].filter(Boolean).join(' / ');
+        }
+      }}},
+    scales:{
+      x:{ticks:{color:'#94a8bc',font:{size:8},maxTicksLimit:20},grid:{color:'#1e3550'}},
+      y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},title:{display:true,text:'流速 kn',color:'#94a8bc'},beginAtZero:true}
+    }
+  }});
+
+  // 流向分布ヒストグラム（期間内）
+  const C8=['N','NE','E','SE','S','SW','W','NW'];
+  const dirCnt = {}; C8.forEach(c=>dirCnt[c]=0);
+  fil.forEach(r=>{ if(r['流向']!=null){ const c=C8[Math.floor(((r['流向']+22.5)/45))%8]; dirCnt[c]++; }});
+  kc('c-current-dir-hist');
+  const ctx2 = document.getElementById('c-current-dir-hist'); if(!ctx2) return;
+  CH['c-current-dir-hist'] = new Chart(ctx2, {type:'bar', data:{
+    labels:C8, datasets:[{label:'日数',data:C8.map(c=>dirCnt[c]),
+      backgroundColor:C8.map((_,i)=>`hsla(${i*45},70%,55%,.75)`),borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#94a8bc',font:{size:10}},grid:{color:'#1e3550'}},
+              y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},title:{display:true,text:'日数',color:'#94a8bc'},beginAtZero:true}}}});
+}
+
+// ══════════════════════════════════════════════════════════
+//  月齢タイムライン
+// ══════════════════════════════════════════════════════════
+function renderMoonTimeline() {
+  if (!G) return;
+  const range  = parseInt(document.getElementById('mtl-range').value);
+  const spF    = document.getElementById('mtl-species').value;
+  const ts     = G.temp_timeseries||[];
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-range);
+  const fil    = ts.filter(r=>new Date(r.date)>=cutoff);
+  const labels = fil.map(r=>r.date);
+  const moons  = fil.map(r=>r['月齢']);
+
+  // 大潮帯を背景色で表示（月齢 0-2, 12-16, 28-29.5 = 大潮）
+  const springTidePlugin = {
+    id:'springTide',
+    beforeDraw(chart) {
+      const {ctx, chartArea:{left,right,top,bottom}, scales:{x,y}} = chart;
+      if(!x||!y) return;
+      const labels = chart.data.labels;
+      ctx.save();
+      labels.forEach((d,i)=>{
+        const entry = fil[i];
+        if(!entry?.月齢==null) return;
+        const ag = entry['月齢'];
+        let col=null;
+        if((ag<=2)||(ag>=12&&ag<=16)||(ag>=28)) col='rgba(0,140,216,.06)';      // 大潮
+        else if((ag>2&&ag<=5)||(ag>16&&ag<=19)) col='rgba(46,196,182,.05)';    // 中潮
+        else if((ag>5&&ag<=8)||(ag>19&&ag<=22)) col='rgba(244,162,97,.05)';    // 小潮
+        if(!col) return;
+        const xPx = x.getPixelForValue(i);
+        const nextX = i+1 < labels.length ? x.getPixelForValue(i+1) : right;
+        ctx.fillStyle = col;
+        ctx.fillRect(xPx, top, nextX-xPx, bottom-top);
+      });
+      ctx.restore();
+    }
+  };
+
+  const datasets = [
+    {label:'月齢(0〜29.5)', data:moons, borderColor:'#e9c46a', backgroundColor:'rgba(233,196,106,.08)',
+      tension:0.3, fill:true, pointRadius:0, borderWidth:1.5},
+    ...buildCatchDatasets(fil, spF, '月齢'),
+  ];
+
+  kc('c-moon-tl');
+  const ctx = document.getElementById('c-moon-tl'); if(!ctx) return;
+  CH['c-moon-tl'] = new Chart(ctx, {type:'line', data:{labels,datasets}, options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{labels:{color:'#94a8bc',font:{size:10}}},
+      springTide:{},
+      tooltip:{callbacks:{
+        afterLabel:ci=>{
+          const r=fil[ci.dataIndex];
+          const ph = r?.['月相'] ? `月相: ${r['月相']}` : '';
+          const f  = r?.釣果?.length ? '🎣 '+r.釣果.join('/')+(isBigCatch(r,spF)?' ⭐大物!':'') : '';
+          return [ph,f].filter(Boolean).join(' ');
+        }
+      }}
+    },
+    scales:{
+      x:{ticks:{color:'#94a8bc',font:{size:8},maxTicksLimit:20},grid:{color:'#1e3550'}},
+      y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},
+         title:{display:true,text:'月齢',color:'#94a8bc'},min:0,max:30,
+         afterBuildTicks: axis => { axis.ticks = [0,7.4,14.8,22.1,29.5].map(v=>({value:v})); },
+         ticks:{callback: v => ({0:'新月',7.4:'上弦',14.8:'満月',22.1:'下弦',29.5:'新月'})[v]||''}}
+    }
+  }, plugins:[springTidePlugin]});
+
+  // 月齢帯別釣果分布
+  const bands = [{label:'大潮',min:28,max:29.5,extra:[[0,2],[12,16]]},{label:'中潮',min:2,max:5,extra:[[16,19]]},{label:'小潮',min:5,max:8,extra:[[19,22]]},{label:'長潮',min:8,max:10,extra:[[22,24]]},{label:'若潮',min:10,max:12,extra:[[24,26]]}];
+  const inBand = (age, b) => {
+    if (age==null) return false;
+    if (age>=b.min && age<=b.max) return true;
+    return b.extra?.some(([a,bb])=>age>=a&&age<=bb) ?? false;
+  };
+  const allCatch = fil.filter(r=>r.釣果?.length);
+  const bigCatch = allCatch.filter(r=>(r['大物魚種']||[]).length>0 && (!spF||(r['大物魚種']||[]).includes(spF)));
+  const normalCatch = allCatch.filter(r=>!(r['大物魚種']||[]).length || (spF && !(r['大物魚種']||[]).includes(spF)));
+  const bLabels = bands.map(b=>b.label);
+  kc('c-moon-dist');
+  const ctx2 = document.getElementById('c-moon-dist'); if(!ctx2) return;
+  CH['c-moon-dist'] = new Chart(ctx2, {type:'bar', data:{
+    labels:bLabels,
+    datasets:[
+      {label:'通常釣果',   data:bands.map(b=>normalCatch.filter(r=>inBand(r['月齢'],b)).length), backgroundColor:'rgba(230,57,70,.7)',  borderWidth:1},
+      {label:'大物(⭐)',   data:bands.map(b=>bigCatch.filter(r=>inBand(r['月齢'],b)).length),    backgroundColor:'rgba(255,215,0,.85)', borderWidth:1},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#94a8bc',font:{size:10}}}},
+      scales:{x:{ticks:{color:'#94a8bc',font:{size:10}},grid:{color:'#1e3550'}},
+              y:{ticks:{color:'#94a8bc',font:{size:9}},grid:{color:'#1e3550'},title:{display:true,text:'釣果日数',color:'#94a8bc'},beginAtZero:true}}}});
+}
+
+// ══════════════════════════════════════════════════════════
+//  5地点海流
+// ══════════════════════════════════════════════════════════
+function renderCurrent5() {
+  if (!G) return;
+  const mode=document.getElementById('c5-mode').value, point=document.getElementById('c5-point').value;
+  const monthly=G.monthly_summary||[];
+  const ptData=monthly.filter(r=>r.point===point);
+  const allYears=[...new Set(ptData.map(r=>r.year))].sort();
+  const target=mode==='recent'?allYears.slice(-1)[0]:null;
+  const fil=target?ptData.filter(r=>r.year===target):ptData;
+  const labels=fil.map(r=>target?`${r.month}月`:`${r.year}-${String(r.month).padStart(2,'0')}`);
+  barChart('c5-speed',labels,[{label:`${point} 流速kn`,data:fil.map(r=>r.avg_speed_kn),backgroundColor:'rgba(0,180,216,.7)',borderColor:'#00b4d8',borderWidth:1}]);
+  barChart('c5-temp', labels,[{label:`${point} 水温℃`, data:fil.map(r=>r.avg_temp_c),  backgroundColor:'rgba(244,162,97,.7)',borderColor:'#f4a261',borderWidth:1}]);
+  const latestYM=monthly.length?{year:monthly[monthly.length-1].year,month:monthly[monthly.length-1].month}:null;
+  if(latestYM){
+    const pts5=['北西','室戸沖','西','東','北東'];
+    const l5=pts5.map(pt=>monthly.find(r=>r.point===pt&&r.year===latestYM.year&&r.month===latestYM.month));
+    barChart('c5-compare-speed',pts5,[{label:`${latestYM.year}年${latestYM.month}月 平均流速`,data:l5.map(r=>r?.avg_speed_kn||0),backgroundColor:PALETTE.slice(0,5).map(c=>c+'cc'),borderWidth:1}]);
+    barChart('c5-compare-temp', pts5,[{label:`${latestYM.year}年${latestYM.month}月 平均水温`,data:l5.map(r=>r?.avg_temp_c||0), backgroundColor:PALETTE.slice(0,5).map(c=>c+'cc'),borderWidth:1}]);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  魚種比較
+// ══════════════════════════════════════════════════════════
+function renderCompare() {
+  if (!G) return;
+  const a=document.getElementById('cmp-a').value, b=document.getElementById('cmp-b').value;
+  if(!a||!b) return;
+  const profiles=GF?GF.profiles:G.species_profiles;
+  const pa=profiles[a], pb=profiles[b]; if(!pa||!pb) return;
+  const colA='rgba(0,180,216,.7)', colB='rgba(244,162,97,.7)';
+  const bins=[...new Set([...Object.keys(pa.water_temp_bins||{}),...Object.keys(pb.water_temp_bins||{})])].sort();
+  barChart('c-cmp-wt',bins,[{label:a,data:bins.map(k=>(pa.water_temp_bins||{})[k]||0),backgroundColor:colA},{label:b,data:bins.map(k=>(pb.water_temp_bins||{})[k]||0),backgroundColor:colB}]);
+  const ms=['1','2','3','4','5','6','7','8','9','10','11','12'];
+  barChart('c-cmp-month',ms.map(m=>m+'月'),[{label:a,data:ms.map(m=>(pa.month_dist||{})[m]||0),backgroundColor:colA},{label:b,data:ms.map(m=>(pb.month_dist||{})[m]||0),backgroundColor:colB}]);
+  const csO=['弱(0〜0.3kn)','中(0.3〜0.6kn)','強(0.6〜1.0kn)','激流(1.0kn+)'];
+  barChart('c-cmp-cs',csO,[{label:a,data:csO.map(k=>(pa.current_speed_bins||{})[k]||0),backgroundColor:colA},{label:b,data:csO.map(k=>(pb.current_speed_bins||{})[k]||0),backgroundColor:colB}]);
+  const tO=['大潮','中潮','小潮','長潮','若潮'];
+  barChart('c-cmp-tide',tO,[{label:a,data:tO.map(k=>(pa.tide_dist||{})[k]||0),backgroundColor:colA},{label:b,data:tO.map(k=>(pb.tide_dist||{})[k]||0),backgroundColor:colB}]);
+}
+</script>
+</body>
+</html>

@@ -1,31 +1,42 @@
-# 機密情報ファイル（GitHubにアップしない）
+# ========== セキュリティ - 絶対にアップロードしないファイル ==========
 .env
-.env.local
-*.secret
-*.secret.*
-*_credentials.*
-config.local.*
+.env.*
+*.env
 config.secret.*
-
-# APIキー・トークンが入りやすいファイル
+*_credentials.*
+*.key
+*.pem
 secrets.json
-credentials.json
-token.json
-auth.json
+secrets.yaml
+secrets.yml
 
-# OS・エディタ系
+# ========== 大容量データファイル（オプション） ==========
+# CSVやJSONはサイズが大きいためデフォルトで除外
+# アップロードしたい場合は該当行をコメントアウト
+# fishing_condition_db.csv
+# fishing_muroto_v2_filtered.csv
+# muroto_offshore_current_all.csv
+# analysis_result.json
+
+# ========== Pythonキャッシュ ==========
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.pytest_cache/
+
+# ========== システムファイル ==========
 .DS_Store
 Thumbs.db
 desktop.ini
-*.swp
+*.tmp
 *.bak
+*.swp
+*~
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-venv/
+# ========== detect-secrets ==========
+.secrets.baseline
 
-# ログファイル
-*.log
+# ========== Node.js（将来使う場合） ==========
+node_modules/
+npm-debug.log*
