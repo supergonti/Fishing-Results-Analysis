@@ -60,16 +60,22 @@ body{background:var(--bg);font-family:'Yu Gothic UI','Meiryo UI','Hiragino Sans'
 .cb-list-grouped{display:flex;flex-direction:column;gap:0;max-height:225px;overflow-y:auto;padding-right:3px;}
 .cb-list-grouped::-webkit-scrollbar{width:5px;}
 .cb-list-grouped::-webkit-scrollbar-thumb{background:#2a4060;border-radius:2px;}
-.cb-group{padding:10px 0;border-bottom:1px solid var(--border);}
+.cb-group{padding:8px 0;border-bottom:1px solid var(--border);}
 .cb-group:last-child{border-bottom:none;}
 .cb-group:first-child{padding-top:0;}
-.cb-group-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;user-select:none;}
+.cb-group-header{display:flex;align-items:center;gap:8px;margin-bottom:0;padding:4px 6px;border-radius:6px;cursor:pointer;user-select:none;transition:background .15s;}
+.cb-group-header:hover{background:rgba(255,255,255,.04);}
 .cb-group-header:hover .cb-group-label{color:var(--text);}
 .cb-group-arrow{font-size:.7rem;color:var(--accent);transition:transform .2s;margin-right:2px;}
-.cb-group-label{font-size:.84rem;font-weight:700;color:var(--accent);letter-spacing:.3px;}
+.cb-group-label{font-size:.84rem;font-weight:700;color:var(--accent);letter-spacing:.3px;transition:color .2s;}
+.cb-group.has-checked .cb-group-label{color:var(--gold);}
+.cb-group.has-checked .cb-group-arrow{color:var(--gold);}
+.cb-group.has-checked .cb-group-header{background:rgba(244,162,97,.08);}
+.cb-group-count{font-size:.7rem;color:var(--text3);margin-left:auto;flex-shrink:0;}
+.cb-group.has-checked .cb-group-count{color:var(--gold);}
 .cb-group-btn{font-size:.74rem;padding:2px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text3);cursor:pointer;transition:all .15s;flex-shrink:0;}
 .cb-group-btn:hover{border-color:var(--accent);color:var(--accent);}
-.cb-group-chips{display:flex;flex-wrap:wrap;gap:5px;padding-left:4px;}
+.cb-group-chips{display:flex;flex-wrap:wrap;gap:5px;padding:6px 4px 2px 18px;}
 #area-chips-list{max-height:225px;overflow-y:auto;}
 .cb-group-chips.collapsed{display:none;}
 #filter-status{font-size:.79rem;color:var(--text3);}
@@ -634,6 +640,14 @@ function buildCBList(containerId, items) {
   });
 }
 
+function updateGroupHighlight(grpDiv) {
+  const cbs = grpDiv.querySelectorAll('input[type=checkbox]');
+  const checkedCount = [...cbs].filter(c => c.checked).length;
+  grpDiv.classList.toggle('has-checked', checkedCount > 0);
+  const countEl = grpDiv.querySelector('.cb-group-count');
+  if (countEl) countEl.textContent = checkedCount > 0 ? checkedCount + '/' + cbs.length : '';
+}
+
 function buildGroupedCBList(containerId, allItems, groupDefs) {
   const el = document.getElementById(containerId); if (!el) return;
   el.innerHTML = '';
@@ -646,10 +660,12 @@ function buildGroupedCBList(containerId, allItems, groupDefs) {
     hdr.className = 'cb-group-header';
     const arrow = document.createElement('span');
     arrow.className = 'cb-group-arrow';
-    arrow.textContent = '▼';
+    arrow.textContent = '▶';
     const lbl = document.createElement('span');
     lbl.className = 'cb-group-label';
     lbl.textContent = label;
+    const countSpan = document.createElement('span');
+    countSpan.className = 'cb-group-count';
     const btn = document.createElement('button');
     btn.className = 'cb-group-btn';
     btn.textContent = '全解除';
@@ -659,16 +675,18 @@ function buildGroupedCBList(containerId, allItems, groupDefs) {
       const allChk = [...cbs].every(cb => cb.checked);
       cbs.forEach(cb => cb.checked = !allChk);
       btn.textContent = allChk ? '全選択' : '全解除';
+      updateGroupHighlight(grpDiv);
     };
-    hdr.appendChild(arrow); hdr.appendChild(lbl); hdr.appendChild(btn);
-    hdr.addEventListener('click', () => {
+    hdr.appendChild(arrow); hdr.appendChild(lbl); hdr.appendChild(countSpan); hdr.appendChild(btn);
+    hdr.addEventListener('click', (e) => {
+      if (e.target.closest('.cb-group-btn')) return;
       const chips = grpDiv.querySelector('.cb-group-chips');
       const collapsed = chips.classList.toggle('collapsed');
       arrow.textContent = collapsed ? '▶' : '▼';
     });
     grpDiv.appendChild(hdr);
     const chips = document.createElement('div');
-    chips.className = 'cb-group-chips';
+    chips.className = 'cb-group-chips collapsed';
     present.forEach(item => {
       const chip = document.createElement('label');
       chip.className = 'cb-chip';
@@ -678,12 +696,14 @@ function buildGroupedCBList(containerId, allItems, groupDefs) {
         e.stopPropagation();
         const cbs = grpDiv.querySelectorAll('input[type=checkbox]');
         btn.textContent = [...cbs].every(c => c.checked) ? '全解除' : '全選択';
+        updateGroupHighlight(grpDiv);
       });
       chip.appendChild(cb);
       chip.appendChild(document.createTextNode(' ' + item));
       chips.appendChild(chip);
     });
     grpDiv.appendChild(chips);
+    updateGroupHighlight(grpDiv);
     return grpDiv;
   }
 
@@ -883,10 +903,12 @@ function refreshSpeciesCBPanel(profiles) {
     hdr.className = 'cb-group-header';
     const arrow = document.createElement('span');
     arrow.className = 'cb-group-arrow';
-    arrow.textContent = '▼';
+    arrow.textContent = '▶';
     const lbl = document.createElement('span');
     lbl.className = 'cb-group-label';
     lbl.textContent = label;
+    const countSpan = document.createElement('span');
+    countSpan.className = 'cb-group-count';
     const btn = document.createElement('button');
     btn.className = 'cb-group-btn';
     btn.textContent = present.every(x => prevChecked.has(x)) ? '全解除' : '全選択';
@@ -896,16 +918,18 @@ function refreshSpeciesCBPanel(profiles) {
       const allChk = [...cbs].every(cb => cb.checked);
       cbs.forEach(cb => cb.checked = !allChk);
       btn.textContent = allChk ? '全選択' : '全解除';
+      updateGroupHighlight(grpDiv);
     };
     hdr.appendChild(arrow); hdr.appendChild(lbl); hdr.appendChild(btn);
-    hdr.addEventListener('click', () => {
+    hdr.addEventListener('click', (e) => {
+      if (e.target.closest('.cb-group-btn')) return;
       const chips = grpDiv.querySelector('.cb-group-chips');
       const collapsed = chips.classList.toggle('collapsed');
       arrow.textContent = collapsed ? '▶' : '▼';
     });
     grpDiv.appendChild(hdr);
     const chips = document.createElement('div');
-    chips.className = 'cb-group-chips';
+    chips.className = 'cb-group-chips collapsed';
     present.forEach(item => {
       const chip = document.createElement('label');
       chip.className = 'cb-chip';
@@ -913,14 +937,16 @@ function refreshSpeciesCBPanel(profiles) {
       cb.type = 'checkbox'; cb.checked = prevChecked.has(item); cb.value = item;
       cb.addEventListener('change', (e) => {
         e.stopPropagation();
-        updateGroupBtnState(grpDiv, btn);
-        syncSPAndAnalyze();
+        const cbs = grpDiv.querySelectorAll('input[type=checkbox]');
+        btn.textContent = [...cbs].every(c => c.checked) ? '全解除' : '全選択';
+        updateGroupHighlight(grpDiv);
       });
       chip.appendChild(cb);
       chip.appendChild(document.createTextNode(' ' + item));
       chips.appendChild(chip);
     });
     grpDiv.appendChild(chips);
+    updateGroupHighlight(grpDiv);
     return grpDiv;
   }
 
