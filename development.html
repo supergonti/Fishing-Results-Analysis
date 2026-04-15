@@ -34,15 +34,15 @@ body{background:var(--bg);font-family:'Yu Gothic UI','Meiryo UI','Hiragino Sans'
 #filter-body{display:none;padding:14px 24px 18px;border-top:1px solid var(--border);}
 .filter-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
 @media(max-width:600px){.filter-cols{grid-template-columns:1fr;}}
-.fcol-title{font-size:.75rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+.fcol-title{font-size:.86rem;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:10px;}
 .fcol-actions{display:flex;gap:10px;margin-bottom:7px;}
-.flink{background:none;border:none;color:var(--accent);font-size:.76rem;cursor:pointer;padding:0;text-decoration:underline;}
+.flink{background:none;border:none;color:var(--accent);font-size:.84rem;cursor:pointer;padding:0;text-decoration:underline;}
 .flink:hover{color:#fff;}
 .cb-list{display:flex;flex-wrap:wrap;gap:5px;max-height:130px;overflow-y:auto;padding-right:3px;}
 .cb-list::-webkit-scrollbar{width:4px;}
 .cb-list::-webkit-scrollbar-thumb{background:#2a4060;border-radius:2px;}
-.cb-chip{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:.77rem;color:var(--text2);transition:all .15s;white-space:nowrap;user-select:none;}
-.cb-chip input[type=checkbox]{accent-color:var(--accent);cursor:pointer;width:11px;height:11px;flex-shrink:0;}
+.cb-chip{display:flex;align-items:center;gap:5px;padding:6px 13px;border-radius:16px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:.92rem;color:var(--text2);transition:all .15s;white-space:nowrap;user-select:none;}
+.cb-chip input[type=checkbox]{accent-color:var(--accent);cursor:pointer;width:14px;height:14px;flex-shrink:0;}
 .cb-chip:has(input:checked){border-color:var(--accent);background:rgba(0,180,216,.1);color:var(--text);}
 .filter-apply-row{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap;}
 .btn-apply{padding:8px 22px;border:none;border-radius:8px;background:var(--accent2);color:#fff;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:filter .15s;}
@@ -57,17 +57,19 @@ body{background:var(--bg);font-family:'Yu Gothic UI','Meiryo UI','Hiragino Sans'
 #sp-filter-badge{display:flex;align-items:center;gap:6px;margin-left:8px;}
 #sp-filter-body{display:none;padding:14px 24px 18px;border-top:1px solid var(--border);}
 /* ─── グループチェック共通 ─── */
-.cb-list-grouped{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;padding-right:3px;}
-.cb-list-grouped::-webkit-scrollbar{width:4px;}
+.cb-list-grouped{display:flex;flex-direction:column;gap:0;max-height:340px;overflow-y:auto;padding-right:3px;}
+.cb-list-grouped::-webkit-scrollbar{width:5px;}
 .cb-list-grouped::-webkit-scrollbar-thumb{background:#2a4060;border-radius:2px;}
-.cb-group{}
-.cb-group-header{display:flex;align-items:center;gap:6px;margin-bottom:3px;cursor:pointer;user-select:none;}
+.cb-group{padding:10px 0;border-bottom:1px solid var(--border);}
+.cb-group:last-child{border-bottom:none;}
+.cb-group:first-child{padding-top:0;}
+.cb-group-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;user-select:none;}
 .cb-group-header:hover .cb-group-label{color:var(--text);}
-.cb-group-arrow{font-size:.6rem;color:var(--text3);transition:transform .2s;margin-right:1px;}
-.cb-group-label{font-size:.71rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;}
-.cb-group-btn{font-size:.67rem;padding:1px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text3);cursor:pointer;transition:all .15s;flex-shrink:0;}
+.cb-group-arrow{font-size:.7rem;color:var(--accent);transition:transform .2s;margin-right:2px;}
+.cb-group-label{font-size:.84rem;font-weight:700;color:var(--accent);letter-spacing:.3px;}
+.cb-group-btn{font-size:.74rem;padding:2px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text3);cursor:pointer;transition:all .15s;flex-shrink:0;}
 .cb-group-btn:hover{border-color:var(--accent);color:var(--accent);}
-.cb-group-chips{display:flex;flex-wrap:wrap;gap:4px;}
+.cb-group-chips{display:flex;flex-wrap:wrap;gap:5px;padding-left:4px;}
 .cb-group-chips.collapsed{display:none;}
 #filter-status{font-size:.79rem;color:var(--text3);}
 #active-filter-banner{display:none;background:rgba(244,162,97,.08);border-bottom:1px solid rgba(244,162,97,.25);padding:6px 24px;font-size:.79rem;color:#f4a261;}
@@ -597,7 +599,7 @@ const METHOD_GROUPS = [
   { label:'泳がせ釣り系',            items:['泳がせ釣り','泳がせ釣り（スタンディング手巻き）','泳がせ釣り・ジギング','泳がせ釣り・大物釣り','泳がせ釣り・落とし込み釣り','泳がせ釣り＆ジギング','泳がせ釣り（エサ用）','泳がせ釣り（スルメイカ餌）','泳がせ釣り（手巻きスタンディング）','泳がせ釣り（手巻き）','手巻きスタンディング・泳がせ釣り'] },
   { label:'ライト泳がせ釣り系',       items:['ライト泳がせ釣り','泳がせ釣り（ハリス2.5号）','泳がせ釣り（ライト）','ライト泳がせ釣り/落とし込み','ライト泳がせ釣り・ジギング','ライト泳がせ釣り・落とし込み','ライト泳がせ・落とし込み'] },
   { label:'ジギング系',               items:['ジギング','ジギング/ライト泳がせ釣り','ジギング・ライト泳がせ釣り','ジギング＆ライト泳がせ釣り','ジギング＋ライト泳がせ釣り'] },
-  { label:'SLJ系',                    items:['SLJ','SLJ（スーパーライトジギング）','スーパーライトジギング(SLJ)','スーパーライトジギング（SLJ）','SLJ・スルメイカ釣り','SLJ＆ジギング','SLJ（スーパーライトジギング）・ジギング'] },
+  { label:'SLJ系',                    items:['SLJ','SLJ（スーパーライトジギング）','スーパーライトジギング（SLJ）'] },
   { label:'タイラバ系',               items:['タイラバ','タイラバ・SLJ','タイラバ＆SLJ','タイ釣り','SLJ＆タイラバ'] },
   { label:'落とし込み系',             items:['落とし込み','落とし込み釣り','落とし込み泳がせ釣り'] },
   { label:'フカセ・磯釣り系',         items:['フカセ釣り','ふかせ釣り','磯釣り','フカセ釣り・磯小物釣り','フカセ釣り・磯釣り','フカセ釣り（ハリス1.5号）','磯釣り・フカセ釣り','磯釣り・底物釣り','磯釣り（フカセ）'] },
@@ -765,22 +767,22 @@ function resetFilter() {
 //  魚種グループ定義
 // ══════════════════════════════════════════════════════════
 const SPECIES_GROUPS = [
-  { label:'ブリ系',       items:['ブリ','ブリ（デカブリ）','ハマチ','メジロ','メジロ（ブリ系）','メジロ（ブリ）'] },
-  { label:'カンパチ系',   items:['カンパチ','ヒレナガカンパチ'] },
+  { label:'カンパチ系',     items:['カンパチ','ヒレナガカンパチ'] },
+  { label:'クエ系',         items:['クエ'] },
+  { label:'マハタ系',       items:['マハタ'] },
+  { label:'イシナギ系',     items:['イシナギ'] },
   { label:'カンパチ小型系', items:['ネイリ（カンパチ幼魚）','ネイリ（カンパチ若魚）'] },
-  { label:'ヒラマサ系',   items:['ヒラマサ'] },
-  { label:'マグロ系',     items:['キハダマグロ','マグロ（キハダ）','イソマグロ'] },
-  { label:'カツオ系',     items:['カツオ','ハガツオ','スマ'] },
-  { label:'サワラ系',     items:['カマスサワラ','サワラ'] },
-  { label:'クエ系',       items:['クエ'] },
-  { label:'マハタ系',     items:['マハタ'] },
-  { label:'イシナギ系',   items:['イシナギ'] },
-  { label:'その他根魚系', items:['アカハタ','アオハタ','オオモンハタ','カケハシハタ','ホウキハタ','アヤメカサゴ','ウッカリカサゴ','エビスダイ','チカメキントキ'] },
-  { label:'鰱系',         items:['マダイ','オオクチハマダイ','レンコダイ','シロアマダイ','アマダイ','イトヨリ','ヒョウダイ'] },
-  { label:'磯釣り対象魚', items:['グレ（メジナ）','イシガキダイ','アイゴ','ヒラスズキ','イサキ'] },
-  { label:'底物・深場系', items:['ヒラメ','カワハギ','ホウボウ','アカヤガラ','オオニベ','ハチビキ','メダイ'] },
-  { label:'イカ',         items:['スルメイカ'] },
-  { label:'その他',       items:['カマス','サバ','アジ','コバンザメ','クロタチカマス','オナガザメ'] },
+  { label:'ヒラマサ系',     items:['ヒラマサ'] },
+  { label:'ブリ系',         items:['ブリ','ブリ（デカブリ）','ハマチ','メジロ','メジロ（ブリ系）','メジロ（ブリ）'] },
+  { label:'マグロ系',       items:['キハダマグロ','マグロ（キハダ）','イソマグロ'] },
+  { label:'カツオ系',       items:['カツオ','ハガツオ','スマ'] },
+  { label:'サワラ系',       items:['カマスサワラ','サワラ'] },
+  { label:'その他根魚系',   items:['アカハタ','アオハタ','オオモンハタ','カケハシハタ','ホウキハタ','アヤメカサゴ','ウッカリカサゴ','エビスダイ','チカメキントキ'] },
+  { label:'鯛系',           items:['マダイ','オオクチハマダイ','レンコダイ','シロアマダイ','アマダイ','イトヨリ','ヒョウダイ'] },
+  { label:'磯釣り対象魚',   items:['グレ（メジナ）','イシガキダイ','アイゴ','ヒラスズキ','イサキ'] },
+  { label:'底物・深場系',   items:['ヒラメ','カワハギ','ホウボウ','アカヤガラ','オオニベ','ハチビキ','メダイ'] },
+  { label:'イカ',           items:['スルメイカ'] },
+  { label:'その他',         items:['カマス','サバ','アジ','コバンザメ','クロタチカマス','オナガザメ'] },
 ];
 
 // ══════════════════════════════════════════════════════════
