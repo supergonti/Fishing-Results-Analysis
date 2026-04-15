@@ -57,7 +57,7 @@ body{background:var(--bg);font-family:'Yu Gothic UI','Meiryo UI','Hiragino Sans'
 #sp-filter-badge{display:flex;align-items:center;gap:6px;margin-left:8px;}
 #sp-filter-body{display:none;padding:14px 24px 18px;border-top:1px solid var(--border);}
 /* ─── グループチェック共通 ─── */
-.cb-list-grouped{display:flex;flex-direction:column;gap:0;max-height:340px;overflow-y:auto;padding-right:3px;}
+.cb-list-grouped{display:flex;flex-direction:column;gap:0;max-height:225px;overflow-y:auto;padding-right:3px;}
 .cb-list-grouped::-webkit-scrollbar{width:5px;}
 .cb-list-grouped::-webkit-scrollbar-thumb{background:#2a4060;border-radius:2px;}
 .cb-group{padding:10px 0;border-bottom:1px solid var(--border);}
@@ -70,6 +70,7 @@ body{background:var(--bg);font-family:'Yu Gothic UI','Meiryo UI','Hiragino Sans'
 .cb-group-btn{font-size:.74rem;padding:2px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text3);cursor:pointer;transition:all .15s;flex-shrink:0;}
 .cb-group-btn:hover{border-color:var(--accent);color:var(--accent);}
 .cb-group-chips{display:flex;flex-wrap:wrap;gap:5px;padding-left:4px;}
+#area-chips-list{max-height:225px;overflow-y:auto;}
 .cb-group-chips.collapsed{display:none;}
 #filter-status{font-size:.79rem;color:var(--text3);}
 #active-filter-banner{display:none;background:rgba(244,162,97,.08);border-bottom:1px solid rgba(244,162,97,.25);padding:6px 24px;font-size:.79rem;color:#f4a261;}
