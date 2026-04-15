@@ -1,0 +1,31 @@
+# 機密情報ファイル（GitHubにアップしない）
+.env
+.env.local
+*.secret
+*.secret.*
+*_credentials.*
+config.local.*
+config.secret.*
+
+# APIキー・トークンが入りやすいファイル
+secrets.json
+credentials.json
+token.json
+auth.json
+
+# OS・エディタ系
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.bak
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ログファイル
+*.log
