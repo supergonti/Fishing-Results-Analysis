@@ -171,6 +171,12 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-15 03:55", "d
 </div>
 
 <div id="active-filter-banner" style="display:none;">🎯 フィルター適用中: <span id="banner-text"></span></div>
+<!-- バッジ要素（updateBadge関数が参照するため非表示で保持） -->
+<div style="display:none;">
+  <span id="badge-spots">釣り場: すべて</span>
+  <span id="badge-methods">釣法: すべて</span>
+  <span id="badge-records"></span>
+</div>
 
 <!-- ─── タブナビ ─── -->
 <div class="tab-nav">
@@ -940,6 +946,7 @@ function updateBadge(nSpots, totalSpots, nMethods, totalMethods, recCount) {
   const bsEl = document.getElementById('badge-spots');
   const bmEl = document.getElementById('badge-methods');
   const brEl = document.getElementById('badge-records');
+  if (!bsEl || !bmEl || !brEl) return;
   const allSp = nSpots  === totalSpots;
   const allMt = nMethods === totalMethods;
   bsEl.textContent = allSp ? '釣り場: すべて' : `釣り場: ${nSpots}/${totalSpots}`;
