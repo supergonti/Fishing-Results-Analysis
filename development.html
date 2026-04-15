@@ -34,15 +34,15 @@ body{background:var(--bg);font-family:'Yu Gothic UI','Meiryo UI','Hiragino Sans'
 #filter-body{display:none;padding:14px 24px 18px;border-top:1px solid var(--border);}
 .filter-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
 @media(max-width:600px){.filter-cols{grid-template-columns:1fr;}}
-.fcol-title{font-size:.86rem;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:10px;}
+.fcol-title{font-size:1.0rem;font-weight:700;color:var(--text);letter-spacing:.5px;margin-bottom:10px;}
 .fcol-actions{display:flex;gap:10px;margin-bottom:7px;}
-.flink{background:none;border:none;color:var(--accent);font-size:.84rem;cursor:pointer;padding:0;text-decoration:underline;}
+.flink{background:none;border:none;color:var(--accent);font-size:.76rem;cursor:pointer;padding:0;text-decoration:underline;}
 .flink:hover{color:#fff;}
 .cb-list{display:flex;flex-wrap:wrap;gap:5px;max-height:130px;overflow-y:auto;padding-right:3px;}
 .cb-list::-webkit-scrollbar{width:4px;}
 .cb-list::-webkit-scrollbar-thumb{background:#2a4060;border-radius:2px;}
-.cb-chip{display:flex;align-items:center;gap:5px;padding:6px 13px;border-radius:16px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:.92rem;color:var(--text2);transition:all .15s;white-space:nowrap;user-select:none;}
-.cb-chip input[type=checkbox]{accent-color:var(--accent);cursor:pointer;width:14px;height:14px;flex-shrink:0;}
+.cb-chip{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:.77rem;color:var(--text2);transition:all .15s;white-space:nowrap;user-select:none;}
+.cb-chip input[type=checkbox]{accent-color:var(--accent);cursor:pointer;width:11px;height:11px;flex-shrink:0;}
 .cb-chip:has(input:checked){border-color:var(--accent);background:rgba(0,180,216,.1);color:var(--text);}
 .filter-apply-row{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap;}
 .btn-apply{padding:8px 22px;border:none;border-radius:8px;background:var(--accent2);color:#fff;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:filter .15s;}
@@ -75,7 +75,7 @@ body{background:var(--bg);font-family:'Yu Gothic UI','Meiryo UI','Hiragino Sans'
 #active-filter-banner{display:none;background:rgba(244,162,97,.08);border-bottom:1px solid rgba(244,162,97,.25);padding:6px 24px;font-size:.79rem;color:#f4a261;}
 /* ─── 設定タブ ─── */
 #tab-settings .settings-section{margin-bottom:20px;}
-#tab-settings .settings-section-title{font-size:.82rem;font-weight:700;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+#tab-settings .settings-section-title{font-size:1.1rem;font-weight:700;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
 .settings-confirm-row{display:flex;align-items:center;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap;}
 .btn-confirm{padding:10px 28px;border:none;border-radius:8px;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;transition:filter .15s;letter-spacing:.3px;}
 .btn-confirm:hover{filter:brightness(1.15);}
