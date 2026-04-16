@@ -1148,8 +1148,9 @@ function filterByDateRange(ts, prefix) {
   const from = fromEl?.value ? new Date(fromEl.value) : null;
   const to   = toEl?.value   ? new Date(toEl.value)   : null;
   if (!from && !to) {
-    // デフォルト: 全期間（全データ表示）
-    return ts;
+    // デフォルト: 直近1年
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-365);
+    return ts.filter(r=>new Date(r.date)>=cutoff);
   }
   return ts.filter(r => {
     const d = new Date(r.date);
@@ -1166,8 +1167,10 @@ function applyRangePreset(prefix) {
   const fromEl = document.getElementById(prefix + '-date-from');
   const toEl   = document.getElementById(prefix + '-date-to');
   if (days >= 9999) {
-    if (fromEl) fromEl.value = '';
-    if (toEl) toEl.value = '';
+    // 全期間: データの最初と最後の日付を設定
+    const ts = G?.temp_timeseries||[];
+    if (ts.length && fromEl) fromEl.value = ts[0].date;
+    if (ts.length && toEl) toEl.value = ts[ts.length-1].date;
   } else {
     const to = new Date();
     const from = new Date(); from.setDate(from.getDate() - days);
