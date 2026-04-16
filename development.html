@@ -1253,6 +1253,45 @@ function renderTideTimeline() {
     })})),
   ];
 
+  // ── 月の満ち欠けをグラフ内（下部）に描画するプラグイン ──
+  const moonPhasePlugin = {
+    id:'moonPhase',
+    afterDraw(chart) {
+      const {ctx:c2, chartArea:{left,right}, scales:{x,y}} = chart;
+      if(!x||!y) return;
+      const step = Math.max(1, Math.floor(fil.length / 40));
+      const moonY = y.getPixelForValue(y.min * 0.55);
+      const rad = 9;
+      fil.forEach((entry,i) => {
+        if (i % step !== 0) return;
+        const ag = entry['月齢'] ?? 0;
+        const xPx = x.getPixelForValue(i);
+        if (xPx < left || xPx > right) return;
+        c2.save();
+        // Moon disk
+        c2.beginPath();
+        c2.arc(xPx, moonY, rad, 0, Math.PI*2);
+        if (ag < 1 || ag > 28.5) {
+          // New moon (dark)
+          c2.fillStyle = '#2a4060'; c2.fill();
+          c2.strokeStyle = '#5a7a99'; c2.lineWidth = 0.8; c2.stroke();
+        } else if (ag > 13.5 && ag < 16) {
+          // Full moon (bright)
+          c2.fillStyle = '#e9c46a'; c2.fill();
+        } else {
+          // Partial moon: yellow disk + shadow ellipse
+          c2.fillStyle = '#e9c46a'; c2.fill();
+          c2.beginPath();
+          const phase = ag / 29.53;
+          const shadowRx = Math.abs(Math.cos(phase * 2 * Math.PI)) * rad;
+          c2.ellipse(xPx, moonY, shadowRx, rad, 0, 0, Math.PI*2);
+          c2.fillStyle = '#1a2e44'; c2.fill();
+        }
+        c2.restore();
+      });
+    }
+  };
+
   kc('c-tide-tl');
   const ctx = document.getElementById('c-tide-tl'); if(!ctx) return;
   CH['c-tide-tl'] = new Chart(ctx, {type:'line', data:{labels,datasets}, options:{
@@ -1272,45 +1311,6 @@ function renderTideTimeline() {
          title:{display:true,text:'推定潮位',color:'#94a8bc'}}
     }
   }, plugins:[tideColorPlugin, moonPhasePlugin]});
-
-  // ── 月の満ち欠けをグラフ内（下部）に描画するプラグイン ──
-  const moonPhasePlugin = {
-    id:'moonPhase',
-    afterDraw(chart) {
-      const {ctx, chartArea:{left,right,bottom}, scales:{x,y}} = chart;
-      if(!x||!y) return;
-      const step = Math.max(1, Math.floor(fil.length / 40));
-      const moonY = y.getPixelForValue(y.min * 0.6);
-      const r = 8;
-      fil.forEach((r_entry,i) => {
-        if (i % step !== 0) return;
-        const ag = r_entry['月齢'] ?? 0;
-        const xPx = x.getPixelForValue(i);
-        if (xPx < left || xPx > right) return;
-        ctx.save();
-        // Draw moon circle
-        ctx.beginPath();
-        ctx.arc(xPx, moonY, r, 0, Math.PI*2);
-        if (ag < 1 || ag > 28.5) {
-          // New moon
-          ctx.fillStyle = '#2a4060'; ctx.fill();
-          ctx.strokeStyle = '#5a7a99'; ctx.lineWidth = 0.8; ctx.stroke();
-        } else if (ag > 13.5 && ag < 16) {
-          // Full moon
-          ctx.fillStyle = '#e9c46a'; ctx.fill();
-        } else {
-          // Partial: draw full yellow, then shadow
-          ctx.fillStyle = '#e9c46a'; ctx.fill();
-          ctx.beginPath();
-          const phase = ag / 29.53;
-          const shadowRx = Math.abs(Math.cos(phase * 2 * Math.PI)) * r;
-          ctx.ellipse(xPx, moonY, shadowRx, r, 0, 0, Math.PI*2);
-          ctx.fillStyle = '#1a2e44'; ctx.fill();
-        }
-        ctx.restore();
-      });
-    }
-  };
 
   // ── 潮汐種別×月齢帯 棒グラフ（新月大潮〜満月大潮） ──
   const spArr = Array.isArray(spF) ? spF : (spF ? [spF] : []);
