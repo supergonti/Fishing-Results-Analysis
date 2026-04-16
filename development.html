@@ -1209,17 +1209,20 @@ function renderTideTimeline() {
   const labels = fil.map(r=>r.date);
 
   // ── 潮位モデル生成（月齢ベース） ──
-  // 振幅: 大潮(新月/満月)=100, 小潮(上弦/下弦)=40
+  // 振幅: 大潮(新月/満月)=100, 小潮(上弦/下弦)=0
   function tideAmplitude(moonAge) {
     // cos(2π * moonAge/14.76) で大潮/小潮を表現
     return 50 + 50 * Math.cos(2 * Math.PI * moonAge / 14.76);
   }
+  // 月齢が null/undefined の場合は null を返し、チャートで線を途切れさせる
   const tideHigh = fil.map(r => {
-    const ag = r['月齢'] ?? 15;
+    const ag = r['月齢'];
+    if (ag == null || !isFinite(ag)) return null;
     return tideAmplitude(ag);
   });
   const tideLow = fil.map(r => {
-    const ag = r['月齢'] ?? 15;
+    const ag = r['月齢'];
+    if (ag == null || !isFinite(ag)) return null;
     return -tideAmplitude(ag) * 0.8;
   });
 
@@ -1286,24 +1289,28 @@ function renderTideTimeline() {
 
         if (illum > 0.01) {
           // 明るい部分を描画
-          const tRx = Math.abs(2 * illum - 1) * R; // ターミネーター楕円X半径
+          // ターミネーター楕円X半径（照明モデル: 0.5で0に近づき、端でRに近づく）
+          const tRx = Math.abs(2 * illum - 1) * R;
           c2.beginPath();
           if (waxing) {
-            // 右半円弧（光る側）
+            // 右半円弧（光る側のアウター）
             c2.arc(xPx, moonY, R, -Math.PI/2, Math.PI/2, false);
-            // ターミネーター楕円弧
             if (illum < 0.5) {
-              c2.ellipse(xPx, moonY, tRx, R, 0, Math.PI/2, -Math.PI/2, false);
-            } else {
+              // 三日月: 右半楕円（anticlockwise=true で0経由＝右側を通す）
               c2.ellipse(xPx, moonY, tRx, R, 0, Math.PI/2, -Math.PI/2, true);
+            } else {
+              // 凸月: 左半楕円（anticlockwise=false でπ経由＝左側を通す）
+              c2.ellipse(xPx, moonY, tRx, R, 0, Math.PI/2, -Math.PI/2, false);
             }
           } else {
-            // 左半円弧（光る側）
+            // 左半円弧（光る側のアウター）
             c2.arc(xPx, moonY, R, Math.PI/2, -Math.PI/2, false);
             if (illum < 0.5) {
-              c2.ellipse(xPx, moonY, tRx, R, 0, -Math.PI/2, Math.PI/2, false);
-            } else {
+              // 三日月: 左半楕円（anticlockwise=true でπ経由＝左側を通す）
               c2.ellipse(xPx, moonY, tRx, R, 0, -Math.PI/2, Math.PI/2, true);
+            } else {
+              // 凸月: 右半楕円（anticlockwise=false で0経由＝右側を通す）
+              c2.ellipse(xPx, moonY, tRx, R, 0, -Math.PI/2, Math.PI/2, false);
             }
           }
           c2.closePath();
