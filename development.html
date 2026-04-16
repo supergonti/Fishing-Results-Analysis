@@ -1265,31 +1265,49 @@ function renderTideTimeline() {
       if(!x||!y) return;
       const step = Math.max(1, Math.floor(fil.length / 40));
       const moonY = y.getPixelForValue(y.min * 0.55);
-      const rad = 9;
-      fil.forEach((entry,i) => {
-        if (i % step !== 0) return;
+      const R = 9;
+      fil.forEach((entry,idx) => {
+        if (idx % step !== 0) return;
         const ag = entry['月齢'] ?? 0;
-        const xPx = x.getPixelForValue(i);
+        const xPx = x.getPixelForValue(idx);
         if (xPx < left || xPx > right) return;
+
+        // 照明割合: 0(新月)→1(満月)→0(新月)
+        const phase = ag / 29.53;
+        const illum = (1 - Math.cos(phase * 2 * Math.PI)) / 2;
+        const waxing = phase < 0.5; // 満ちていく
+
         c2.save();
-        // Moon disk
+        // 暗い月面（ベース）
         c2.beginPath();
-        c2.arc(xPx, moonY, rad, 0, Math.PI*2);
-        if (ag < 1 || ag > 28.5) {
-          // New moon (dark)
-          c2.fillStyle = '#2a4060'; c2.fill();
-          c2.strokeStyle = '#5a7a99'; c2.lineWidth = 0.8; c2.stroke();
-        } else if (ag > 13.5 && ag < 16) {
-          // Full moon (bright)
-          c2.fillStyle = '#e9c46a'; c2.fill();
-        } else {
-          // Partial moon: yellow disk + shadow ellipse
-          c2.fillStyle = '#e9c46a'; c2.fill();
+        c2.arc(xPx, moonY, R, 0, Math.PI*2);
+        c2.fillStyle = '#2a4060'; c2.fill();
+        c2.strokeStyle = '#5a7a99'; c2.lineWidth = 0.5; c2.stroke();
+
+        if (illum > 0.01) {
+          // 明るい部分を描画
+          const tRx = Math.abs(2 * illum - 1) * R; // ターミネーター楕円X半径
           c2.beginPath();
-          const phase = ag / 29.53;
-          const shadowRx = Math.abs(Math.cos(phase * 2 * Math.PI)) * rad;
-          c2.ellipse(xPx, moonY, shadowRx, rad, 0, 0, Math.PI*2);
-          c2.fillStyle = '#1a2e44'; c2.fill();
+          if (waxing) {
+            // 右半円弧（光る側）
+            c2.arc(xPx, moonY, R, -Math.PI/2, Math.PI/2, false);
+            // ターミネーター楕円弧
+            if (illum < 0.5) {
+              c2.ellipse(xPx, moonY, tRx, R, 0, Math.PI/2, -Math.PI/2, false);
+            } else {
+              c2.ellipse(xPx, moonY, tRx, R, 0, Math.PI/2, -Math.PI/2, true);
+            }
+          } else {
+            // 左半円弧（光る側）
+            c2.arc(xPx, moonY, R, Math.PI/2, -Math.PI/2, false);
+            if (illum < 0.5) {
+              c2.ellipse(xPx, moonY, tRx, R, 0, -Math.PI/2, Math.PI/2, false);
+            } else {
+              c2.ellipse(xPx, moonY, tRx, R, 0, -Math.PI/2, Math.PI/2, true);
+            }
+          }
+          c2.closePath();
+          c2.fillStyle = '#e9c46a'; c2.fill();
         }
         c2.restore();
       });
