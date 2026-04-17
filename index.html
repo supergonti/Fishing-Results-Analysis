@@ -2191,4 +2191,14 @@ function renderCompare() {
   const pa=profiles[a], pb=profiles[b]; if(!pa||!pb) return;
   const colA='rgba(0,180,216,.7)', colB='rgba(244,162,97,.7)';
   const bins=[...new Set([...Object.keys(pa.water_temp_bins||{}),...Object.keys(pb.water_temp_bins||{})])].sort();
-  barChart('c-cmp-wt',bins,[{label:a,data:bi
+  barChart('c-cmp-wt',bins,[{label:a,data:bins.map(k=>(pa.water_temp_bins||{})[k]||0),backgroundColor:colA},{label:b,data:bins.map(k=>(pb.water_temp_bins||{})[k]||0),backgroundColor:colB}]);
+  const ms=['1','2','3','4','5','6','7','8','9','10','11','12'];
+  barChart('c-cmp-month',ms.map(m=>m+'月'),[{label:a,data:ms.map(m=>(pa.month_dist||{})[m]||0),backgroundColor:colA},{label:b,data:ms.map(m=>(pb.month_dist||{})[m]||0),backgroundColor:colB}]);
+  const csO=['弱(0〜0.3kn)','中(0.3〜0.6kn)','強(0.6〜1.0kn)','激流(1.0kn+)'];
+  barChart('c-cmp-cs',csO,[{label:a,data:csO.map(k=>(pa.current_speed_bins||{})[k]||0),backgroundColor:colA},{label:b,data:csO.map(k=>(pb.current_speed_bins||{})[k]||0),backgroundColor:colB}]);
+  const tO=['大潮','中潮','小潮','長潮','若潮'];
+  barChart('c-cmp-tide',tO,[{label:a,data:tO.map(k=>(pa.tide_dist||{})[k]||0),backgroundColor:colA},{label:b,data:tO.map(k=>(pb.tide_dist||{})[k]||0),backgroundColor:colB}]);
+}
+</script>
+</body>
+</html>
