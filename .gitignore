@@ -2,13 +2,21 @@
 .env
 .env.*
 *.env
+*.secret.*
 config.secret.*
+config.local.*
 *_credentials.*
 *.key
 *.pem
 secrets.json
 secrets.yaml
 secrets.yml
+
+# ========== Windows実行用スクリプト（ローカル限定） ==========
+# サンドボックスから渡される一度限りの手順書。誤コミット防止のため明示的に除外。
+finish_task5.bat
+fix_ocean_sync.bat
+commit_push_task5.bat
 
 # ========== 大容量データファイル（オプション） ==========
 # CSVやJSONはサイズが大きいためデフォルトで除外

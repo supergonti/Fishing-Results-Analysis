@@ -4,11 +4,11 @@
 釣果データ解析エンジン v2.0
 設計書 v1.0 に準拠した3DB結合版
 
-DB① fishing_muroto_v2_filtered.csv  -- メイン釣果テーブル
+DB① fishing_muroto_v1.csv           -- メイン釣果テーブル（室戸沖釣果DB V2.0が生成）
 DB② muroto_offshore_current_all.csv -- 5地点海流詳細（CMEMS）
 DB③ fishing_condition_db.csv        -- 気象・潮汐・波高（Open-Meteo）
 
-出力: dashboard.html（JSONを<script>に埋め込んだスタンドアロンHTML）
+出力: analysis_result.json（index.html が fetch で読み込む本番JSON）
 """
 
 import csv, json, math, os, re
@@ -16,14 +16,18 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 
 # ─── 設定（ファイル名のみ変更可） ───────────────────────────
-DB1_CSV  = "fishing_muroto_v2_filtered.csv"   # DB① メイン釣果
+DB1_CSV  = "fishing_muroto_v1.csv"            # DB① メイン釣果（室戸沖釣果DB V2.0 が生成するファイル名）
 DB2_CSV  = "muroto_offshore_current_all.csv"  # DB② 5地点海流
 DB3_CSV  = "fishing_condition_db.csv"         # DB③ 気象・潮汐
 DB3_STATION = "室戸"                           # DB③ 解析対象地点
 
-TEMPLATE_HTML = "index.html"       # HTMLテンプレート
-OUTPUT_HTML   = "dashboard.html"   # 出力スタンドアロンHTML
-OUTPUT_JSON   = "analysis_result.json"  # デバッグ用JSON（任意）
+# 本番ワークフロー（2026-04-17 確定）:
+#   - index.html: 公開版（Web向け、fetch('analysis_result.json') で読み込み）
+#   - development.html: 開発版（屋外/ローカル向け、window.ANALYSIS_DATA 埋め込み）
+#   - analyze_engine.py は analysis_result.json を書き、development.html の
+#     埋め込みデータブロックも毎回最新化する。index.html は無改修で放置（手動昇格）。
+OUTPUT_JSON    = "analysis_result.json"   # 本番JSON（index.html が fetch）
+DEV_HTML       = "development.html"       # 開発版HTML（埋め込みデータ更新対象）
 
 # ─── 解析対象の数値カラム（DB①） ──────────────────────────
 NUMERIC_COLS = [
@@ -505,14 +509,39 @@ window.ANALYSIS_DATA = {json_str};
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
 
+# ─── development.html の埋め込みデータ更新 ─────────────────
+# development.html には window.ANALYSIS_DATA = {...}; が1行で埋め込まれている。
+# その行だけを最新の解析結果で置換し、他の行（UI/JS/CSS）はそのまま維持する。
+def update_embedded_analysis_data(dev_html_path, result_obj):
+    if not os.path.exists(dev_html_path):
+        return False
+    try:
+        with open(dev_html_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        new_json_str = json.dumps(result_obj, ensure_ascii=False, default=str)
+        new_line = f"window.ANALYSIS_DATA = {new_json_str};\n"
+        replaced = False
+        for i, line in enumerate(lines):
+            # 「window.ANALYSIS_DATA = 」で始まる行を唯一のマーカーとする
+            if line.startswith("window.ANALYSIS_DATA "):
+                lines[i] = new_line
+                replaced = True
+                break
+        if not replaced:
+            return False
+        with open(dev_html_path, "w", encoding="utf-8", newline="") as f:
+            f.writelines(lines)
+        return True
+    except Exception as e:
+        print(f"⚠  development.html 更新中にエラー: {e}")
+        return False
+
 # ─── メイン ───────────────────────────────────────────────
 def main():
     base = os.path.dirname(os.path.abspath(__file__))
     db1_path  = os.path.join(base, DB1_CSV)
     db2_path  = os.path.join(base, DB2_CSV)
     db3_path  = os.path.join(base, DB3_CSV)
-    tmpl_path = os.path.join(base, TEMPLATE_HTML)
-    out_html  = os.path.join(base, OUTPUT_HTML)
     out_json  = os.path.join(base, OUTPUT_JSON)
 
     print("=" * 50)
@@ -616,20 +645,25 @@ def main():
         "records":            records,
     }
 
-    # JSON 保存
+    # JSON 保存（index.html が fetch で読み込む本番JSON）
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2, default=str)
     print(f"\n✅ JSON出力: {out_json}")
 
-    # スタンドアロンHTML生成
-    if os.path.exists(tmpl_path):
-        generate_standalone_html(result, tmpl_path, out_html)
-        print(f"✅ HTML出力: {out_html}")
+    # development.html の埋め込みデータを最新化
+    # （ローカル/屋外で file:// から開いてもフレッシュなデータを表示するため）
+    dev_path = os.path.join(base, DEV_HTML)
+    updated = update_embedded_analysis_data(dev_path, result)
+    if updated:
+        print(f"✅ development.html 埋め込みデータ更新: {dev_path}")
     else:
-        print(f"⚠  テンプレート {tmpl_path} が見つかりません（HTMLは生成されません）")
+        print(f"⚠  development.html を更新できませんでした（パス/マーカー不一致）")
+
+    # dashboard.html 生成は 2026-04-17 に廃止（index.html が analysis_result.json を fetch する方式に移行）。
+    # generate_standalone_html 関数自体は将来再利用の可能性を考慮しデッドコードとして残置。
 
     print("\n" + "="*50)
-    print(f"  解析完了！ dashboard.html をブラウザで開いてください")
+    print(f"  解析完了！ development.html をブラウザで開いてください（最新データ埋め込み済み）")
     print("="*50)
 
 if __name__ == "__main__":
