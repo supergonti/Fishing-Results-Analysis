@@ -54,3 +54,16 @@ desktop.ini
 # ========== Node.js（将来使う場合） ==========
 node_modules/
 npm-debug.log*
+
+# ========== セキュリティ必須パターン（scan_3layer.sh 準拠） ==========
+.env
+*.secret
+*credentials*
+*.key
+*.pem
+
+# ========== ローカル限定データ（sync_latest.bat が再生成） ==========
+analysis_result.json
+fishing_condition_db.csv
+muroto_offshore_current_all.csv
+fishing_muroto_v1.csv
