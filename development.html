@@ -155,6 +155,24 @@ select:focus{border-color:var(--accent);}
 .file-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;background:var(--surface2);border:2px dashed var(--border);color:var(--text2);cursor:pointer;font-size:.9rem;transition:all .2s;}
 .file-btn:hover{border-color:var(--accent);color:var(--accent);}
 .footer{text-align:center;padding:18px;color:var(--text3);font-size:.72rem;border-top:1px solid var(--border);margin-top:20px;}
+/* ─── 改良版バッジ ─── */
+.dev-badge{display:inline-block;background:#ff6b35;color:#fff;font-size:.6rem;font-weight:700;padding:2px 10px;border-radius:12px;vertical-align:middle;margin-left:10px;letter-spacing:.05em;}
+/* ─── 更新ボタン ─── */
+.promote-btn{display:inline-block;background:#c62828;color:#fff;font-size:.6rem;font-weight:700;padding:3px 12px;border:none;border-radius:6px;cursor:pointer;vertical-align:middle;margin-left:8px;transition:background .2s;}
+.promote-btn:hover{background:#e53935;}
+/* ─── 昇格モーダル ─── */
+.promote-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;justify-content:center;align-items:center;}
+.promote-overlay.active{display:flex;}
+.promote-modal{background:var(--surface);border:2px solid var(--accent2);border-radius:12px;padding:28px 32px;max-width:440px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+.promote-modal h2{color:var(--gold);font-size:1.1rem;margin-bottom:12px;}
+.promote-modal p{color:var(--text2);font-size:.85rem;line-height:1.6;margin-bottom:8px;}
+.promote-modal .note{color:var(--text3);font-size:.75rem;margin-bottom:20px;}
+.promote-modal .btn-row{display:flex;gap:12px;justify-content:center;}
+.promote-modal .btn-exec{background:#c62828;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .2s;}
+.promote-modal .btn-exec:hover{background:#e53935;}
+.promote-modal .btn-cancel{background:var(--surface2);color:var(--text2);border:1px solid var(--border);padding:10px 28px;border-radius:8px;font-size:.9rem;cursor:pointer;transition:background .2s;}
+.promote-modal .btn-cancel:hover{background:var(--border);}
+.promote-done{display:none;margin-top:16px;padding:12px;background:rgba(46,196,182,.15);border:1px solid var(--green);border-radius:8px;color:var(--green);font-size:.82rem;line-height:1.6;}
 </style>
 <script>
 // データ埋め込み済み（standalone生成）
@@ -172,7 +190,7 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-17 11:26", "d
 <div class="app-header">
   <span class="icon">🌊</span>
   <div>
-    <h1>室戸沖 釣果データ解析ソフト v2.1</h1>
+    <h1>室戸沖 釣果データ解析ソフト v2.1 <span class="dev-badge">改良版</span><button class="promote-btn" onclick="showPromoteModal()">更新</button></h1>
     <p>3DB統合解析（釣果DB × 5地点海流DB × 気象潮汐DB）</p>
   </div>
   <div class="header-meta">
@@ -579,6 +597,47 @@ window.ANALYSIS_DATA = {"version": "2.1", "generated_at": "2026-04-17 11:26", "d
 </div>
 
 <div class="footer">室戸沖 釣果データ解析ソフト v2.1 ／ DB①釣果 × DB②CMEMS海流(5地点) × DB③Open-Meteo気象潮汐</div>
+
+<!-- ─── 昇格確認モーダル ─── -->
+<div class="promote-overlay" id="promote-overlay">
+  <div class="promote-modal">
+    <h2>⚠ index.html 更新確認</h2>
+    <p>本当に更新しますか？</p>
+    <p class="note">現在の development.html の内容を index.html として書き出します。<br>この操作は元に戻せません。</p>
+    <div class="btn-row">
+      <button class="btn-exec" onclick="executePromote()">実行</button>
+      <button class="btn-cancel" onclick="hidePromoteModal()">中止</button>
+    </div>
+    <div class="promote-done" id="promote-done">
+      ✅ index.html をダウンロードしました。<br>
+      ダウンロードした index.html を<br>
+      <b>釣果データ解析ソフト_v2</b> フォルダに<b>上書き保存</b>してください。<br>
+      その後、<code>sync_latest.bat</code> または Git で push してください。
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── 昇格モーダル制御 ─── */
+function showPromoteModal(){document.getElementById('promote-overlay').classList.add('active');document.getElementById('promote-done').style.display='none';}
+function hidePromoteModal(){document.getElementById('promote-overlay').classList.remove('active');}
+function executePromote(){
+  try{
+    const html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+    const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='index.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    document.getElementById('promote-done').style.display='block';
+    document.querySelector('.promote-modal .btn-row').style.display='none';
+  }catch(e){alert('エラーが発生しました: '+e.message);}
+}
+document.getElementById('promote-overlay').addEventListener('click',function(e){if(e.target===this)hidePromoteModal();});
+</script>
 
 <script>
 // ══════════════════════════════════════════════════════════
@@ -2132,14 +2191,4 @@ function renderCompare() {
   const pa=profiles[a], pb=profiles[b]; if(!pa||!pb) return;
   const colA='rgba(0,180,216,.7)', colB='rgba(244,162,97,.7)';
   const bins=[...new Set([...Object.keys(pa.water_temp_bins||{}),...Object.keys(pb.water_temp_bins||{})])].sort();
-  barChart('c-cmp-wt',bins,[{label:a,data:bins.map(k=>(pa.water_temp_bins||{})[k]||0),backgroundColor:colA},{label:b,data:bins.map(k=>(pb.water_temp_bins||{})[k]||0),backgroundColor:colB}]);
-  const ms=['1','2','3','4','5','6','7','8','9','10','11','12'];
-  barChart('c-cmp-month',ms.map(m=>m+'月'),[{label:a,data:ms.map(m=>(pa.month_dist||{})[m]||0),backgroundColor:colA},{label:b,data:ms.map(m=>(pb.month_dist||{})[m]||0),backgroundColor:colB}]);
-  const csO=['弱(0〜0.3kn)','中(0.3〜0.6kn)','強(0.6〜1.0kn)','激流(1.0kn+)'];
-  barChart('c-cmp-cs',csO,[{label:a,data:csO.map(k=>(pa.current_speed_bins||{})[k]||0),backgroundColor:colA},{label:b,data:csO.map(k=>(pb.current_speed_bins||{})[k]||0),backgroundColor:colB}]);
-  const tO=['大潮','中潮','小潮','長潮','若潮'];
-  barChart('c-cmp-tide',tO,[{label:a,data:tO.map(k=>(pa.tide_dist||{})[k]||0),backgroundColor:colA},{label:b,data:tO.map(k=>(pb.tide_dist||{})[k]||0),backgroundColor:colB}]);
-}
-</script>
-</body>
-</html>
+  barChart('c-cmp-wt',bins,[{label:a,data:bi
