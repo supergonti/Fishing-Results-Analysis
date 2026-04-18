@@ -26,8 +26,9 @@ DB3_STATION = "室戸"                           # DB③ 解析対象地点
 #   - development.html: 開発版（屋外/ローカル向け、window.ANALYSIS_DATA 埋め込み）
 #   - analyze_engine.py は analysis_result.json を書き、development.html の
 #     埋め込みデータブロックも毎回最新化する。index.html は無改修で放置（手動昇格）。
-OUTPUT_JSON    = "analysis_result.json"   # 本番JSON（index.html が fetch）
-DEV_HTML       = "development.html"       # 開発版HTML（埋め込みデータ更新対象）
+OUTPUT_JSON    = "analysis_result.json"   # 本番JSON（任意のフェッチ用 / ローカル限定）
+DEV_HTML       = "development.html"       # 開発版HTML（埋め込みデータ更新対象 / 屋外オフライン用）
+INDEX_HTML     = "index.html"             # 公開版HTML（埋め込みデータ更新対象 / GitHub Pages 配信用）
 
 # ─── 解析対象の数値カラム（DB①） ──────────────────────────
 NUMERIC_COLS = [
@@ -509,14 +510,16 @@ window.ANALYSIS_DATA = {json_str};
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
 
-# ─── development.html の埋め込みデータ更新 ─────────────────
-# development.html には window.ANALYSIS_DATA = {...}; が1行で埋め込まれている。
+# ─── HTML 内の埋め込みデータ更新（development.html / index.html 共通） ───
+# 対象HTMLには window.ANALYSIS_DATA = {...}; が1行で埋め込まれている。
 # その行だけを最新の解析結果で置換し、他の行（UI/JS/CSS）はそのまま維持する。
-def update_embedded_analysis_data(dev_html_path, result_obj):
-    if not os.path.exists(dev_html_path):
+# development.html: 屋外/ローカル file:// 運用（オフラインでも埋め込みで完結）
+# index.html:       GitHub Pages 配信用（公開版も埋め込み型で自己完結、fetch不要）
+def update_embedded_analysis_data(html_path, result_obj):
+    if not os.path.exists(html_path):
         return False
     try:
-        with open(dev_html_path, "r", encoding="utf-8") as f:
+        with open(html_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
         new_json_str = json.dumps(result_obj, ensure_ascii=False, default=str)
         new_line = f"window.ANALYSIS_DATA = {new_json_str};\n"
@@ -529,11 +532,11 @@ def update_embedded_analysis_data(dev_html_path, result_obj):
                 break
         if not replaced:
             return False
-        with open(dev_html_path, "w", encoding="utf-8", newline="") as f:
+        with open(html_path, "w", encoding="utf-8", newline="") as f:
             f.writelines(lines)
         return True
     except Exception as e:
-        print(f"⚠  development.html 更新中にエラー: {e}")
+        print(f"⚠  {os.path.basename(html_path)} 更新中にエラー: {e}")
         return False
 
 # ─── メイン ───────────────────────────────────────────────
@@ -659,7 +662,18 @@ def main():
     else:
         print(f"⚠  development.html を更新できませんでした（パス/マーカー不一致）")
 
-    # dashboard.html 生成は 2026-04-17 に廃止（index.html が analysis_result.json を fetch する方式に移行）。
+    # index.html（公開版／GitHub Pages 配信用）の埋め込みデータも最新化
+    # 公開版も埋め込み型（自己完結HTML）で運用するため、development.html と
+    # 同じ処理で window.ANALYSIS_DATA を毎回最新の解析結果に置換する。
+    # これにより promote_to_index.bat の手動実行忘れでも公開版が陳腐化しない。
+    index_path = os.path.join(base, INDEX_HTML)
+    updated_idx = update_embedded_analysis_data(index_path, result)
+    if updated_idx:
+        print(f"✅ index.html 埋め込みデータ更新: {index_path}")
+    else:
+        print(f"⚠  index.html を更新できませんでした（パス/マーカー不一致）")
+
+    # dashboard.html 生成は 2026-04-17 に廃止（development.html / index.html 共に埋め込み型に移行）。
     # generate_standalone_html 関数自体は将来再利用の可能性を考慮しデッドコードとして残置。
 
     print("\n" + "="*50)
